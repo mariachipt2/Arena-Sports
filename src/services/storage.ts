@@ -5,12 +5,12 @@ interface CacheEntry<T> {
   expiry: number; // Timestamp
 }
 
-const envKey = (import.meta.env.VITE_API_FOOTBALL_KEY as string) || '';
+const envKey = (import.meta.env.VITE_API_FOOTBALL_KEY as string) || '569319a5928dc79a97a43d90785a0558';
 
 const DEFAULT_PREFS: Preferences = {
-  apiKey: envKey,
+  apiKey: envKey || '569319a5928dc79a97a43d90785a0558',
   selectedLeagues: [71, 73, 2, 39, 140], // Brasileirão Série A, Copa do Brasil, Champions, Premier League, La Liga
-  useSimulation: false, // Sempre direto pela API oficial
+  useSimulation: false,
 };
 
 export const storageService = {

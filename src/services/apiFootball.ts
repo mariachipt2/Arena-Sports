@@ -90,10 +90,13 @@ export const apiFootballService = {
     
     try {
       const apiMatches = await this.fetchFromApi<ApiFixture[]>('fixtures?live=all', 'live_matches', 1);
-      return apiMatches || [];
+      if (apiMatches && apiMatches.length > 0) {
+        return apiMatches;
+      }
+      return mockDataService.getLiveMatches();
     } catch (e) {
-      console.warn('Erro ao buscar jogos ao vivo da API:', e instanceof Error ? e.message : e);
-      return [];
+      console.warn('Usando dados de fallback para jogos ao vivo devido a:', e instanceof Error ? e.message : e);
+      return mockDataService.getLiveMatches();
     }
   },
 
@@ -111,10 +114,19 @@ export const apiFootballService = {
     try {
       // Endpoint da API: fixtures?date=YYYY-MM-DD
       const apiMatches = await this.fetchFromApi<ApiFixture[]>(`fixtures?date=${today}`, `fixtures_${today}`, 15);
-      return apiMatches || [];
+      if (apiMatches && apiMatches.length > 0) {
+        return apiMatches;
+      }
+      return [
+        ...mockDataService.getFinishedMatches(),
+        ...mockDataService.getUpcomingMatches()
+      ];
     } catch (e) {
-      console.warn('Erro ao buscar jogos do dia da API:', e instanceof Error ? e.message : e);
-      return [];
+      console.warn('Usando dados de fallback para jogos do dia devido a:', e instanceof Error ? e.message : e);
+      return [
+        ...mockDataService.getFinishedMatches(),
+        ...mockDataService.getUpcomingMatches()
+      ];
     }
   },
 

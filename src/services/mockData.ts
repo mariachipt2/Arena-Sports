@@ -55,6 +55,28 @@ const mockFinishedMatches: ApiFixture[] = [
 const getUpcomingMatchesList = (): ApiFixture[] => [
   {
     fixture: {
+      id: 9907,
+      referee: "Wilton Pereira Sampaio",
+      timezone: "America/Sao_Paulo",
+      date: new Date(Date.now() + 2.5 * 3600 * 1000).toISOString(), // Hoje à noite (2h30 à frente)
+      timestamp: Math.floor((Date.now() + 2.5 * 3600 * 1000) / 1000),
+      status: { long: "Not Started", short: "NS", elapsed: null }
+    },
+    league: { id: 71, name: "Brasileirão Série A", country: "Brazil", logo: "https://media.api-sports.io/football/leagues/71.png", flag: "https://media.api-sports.io/flags/br.svg", season: 2026 },
+    teams: {
+      home: { id: 135, name: "Cruzeiro", logo: "https://media.api-sports.io/football/teams/135.png", winner: null },
+      away: { id: 1062, name: "Atlético-MG", logo: "https://media.api-sports.io/football/teams/1062.png", winner: null }
+    },
+    goals: { home: null, away: null },
+    score: {
+      halftime: { home: null, away: null },
+      fulltime: { home: null, away: null },
+      extratime: { home: null, away: null },
+      penalty: { home: null, away: null }
+    }
+  },
+  {
+    fixture: {
       id: 9903,
       referee: "Raphael Claus",
       timezone: "America/Sao_Paulo",
@@ -80,8 +102,8 @@ const getUpcomingMatchesList = (): ApiFixture[] => [
       id: 9904,
       referee: "Anthony Taylor",
       timezone: "Europe/London",
-      date: new Date(Date.now() + 7 * 3600 * 1000).toISOString(), // Hoje à noite
-      timestamp: Math.floor((Date.now() + 7 * 3600 * 1000) / 1000),
+      date: new Date(Date.now() + 6 * 3600 * 1000).toISOString(), // Hoje
+      timestamp: Math.floor((Date.now() + 6 * 3600 * 1000) / 1000),
       status: { long: "Not Started", short: "NS", elapsed: null }
     },
     league: { id: 39, name: "Premier League", country: "England", logo: "https://media.api-sports.io/football/leagues/39.png", flag: "https://media.api-sports.io/flags/gb.svg", season: 2026 },
@@ -132,50 +154,6 @@ const getUpcomingMatchesList = (): ApiFixture[] => [
     teams: {
       home: { id: 541, name: "Real Madrid", logo: "https://media.api-sports.io/football/teams/541.png", winner: null },
       away: { id: 529, name: "Barcelona", logo: "https://media.api-sports.io/football/teams/529.png", winner: null }
-    },
-    goals: { home: null, away: null },
-    score: {
-      halftime: { home: null, away: null },
-      fulltime: { home: null, away: null },
-      extratime: { home: null, away: null },
-      penalty: { home: null, away: null }
-    }
-  },
-  {
-    fixture: {
-      id: 9907,
-      referee: "Wilton Pereira Sampaio",
-      timezone: "America/Sao_Paulo",
-      date: new Date(Date.now() + 50 * 3600 * 1000).toISOString(), // Depois de amanhã
-      timestamp: Math.floor((Date.now() + 50 * 3600 * 1000) / 1000),
-      status: { long: "Not Started", short: "NS", elapsed: null }
-    },
-    league: { id: 71, name: "Brasileirão Série A", country: "Brazil", logo: "https://media.api-sports.io/football/leagues/71.png", flag: "https://media.api-sports.io/flags/br.svg", season: 2026 },
-    teams: {
-      home: { id: 1062, name: "Atlético-MG", logo: "https://media.api-sports.io/football/teams/1062.png", winner: null },
-      away: { id: 135, name: "Cruzeiro", logo: "https://media.api-sports.io/football/teams/135.png", winner: null }
-    },
-    goals: { home: null, away: null },
-    score: {
-      halftime: { home: null, away: null },
-      fulltime: { home: null, away: null },
-      extratime: { home: null, away: null },
-      penalty: { home: null, away: null }
-    }
-  },
-  {
-    fixture: {
-      id: 9908,
-      referee: "Felix Zwayer",
-      timezone: "Europe/Berlin",
-      date: new Date(Date.now() + 72 * 3600 * 1000).toISOString(),
-      timestamp: Math.floor((Date.now() + 72 * 3600 * 1000) / 1000),
-      status: { long: "Not Started", short: "NS", elapsed: null }
-    },
-    league: { id: 2, name: "UEFA Champions League", country: "Europe", logo: "https://media.api-sports.io/football/leagues/2.png", flag: "https://media.api-sports.io/flags/eu.svg", season: 2026 },
-    teams: {
-      home: { id: 157, name: "Bayern Munich", logo: "https://media.api-sports.io/football/teams/157.png", winner: null },
-      away: { id: 85, name: "Paris Saint Germain", logo: "https://media.api-sports.io/football/teams/85.png", winner: null }
     },
     goals: { home: null, away: null },
     score: {
