@@ -110,10 +110,15 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    const handlePrefsChange = () => {
+      console.log('[Preferences] Configurações alteradas. Recarregando partidas...');
+      fetchMatches();
+    };
+
+    window.addEventListener('preferencesChanged', handlePrefsChange);
+
     // Configura o intervalo de atualização inteligente
     const prefs = storageService.getPreferences();
-    // No modo simulação, atualiza mais rápido (5s) para o usuário ver os gols acontecendo
-    // Em produção (API), atualiza a cada 60s para economizar cota
     const intervalTime = prefs.useSimulation ? 5000 : 60000;
 
     const intervalId = setInterval(() => {
@@ -125,6 +130,7 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
     return () => {
       clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('preferencesChanged', handlePrefsChange);
     };
   }, [fetchMatches]);
 
