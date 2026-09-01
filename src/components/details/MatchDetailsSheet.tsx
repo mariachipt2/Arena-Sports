@@ -1,0 +1,364 @@
+import React, { useEffect, useState } from 'react';
+import { X, Activity, Users, BarChart2, Calendar, Star } from 'lucide-react';
+import type { ApiFixture, MatchLineup, MatchStatistics } from '../../types/api';
+import { apiFootballService } from '../../services/apiFootball';
+import { TeamBadge } from '../common/TeamBadge';
+import { ScoreBadge } from '../common/ScoreBadge';
+import { MatchTimeline } from './MatchTimeline';
+import { PitchLineup } from './PitchLineup';
+import { StatsComparison } from './StatsComparison';
+import { useFavorites } from '../../hooks/useFavorites';
+
+interface MatchDetailsSheetProps {
+  match: ApiFixture | null;
+  onClose: () => void;
+}
+
+type DetailTab = 'timeline' | 'lineups' | 'stats';
+
+export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onClose }) => {
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const [activeTab, setActiveTab] = useState<DetailTab>('timeline');
+  const [lineups, setLineups] = useState<MatchLineup[]>([]);
+  const [stats, setStats] = useState<MatchStatistics[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!match) return;
+
+    // Reset de estado ao abrir um novo jogo
+    setLineups([]);
+    setStats([]);
+    setActiveTab('timeline');
+    setError(null);
+
+    // Carregamento Lazy Load sob demanda
+    const loadDetails = async () => {
+      setLoading(true);
+      try {
+        const details = await apiFootballService.getMatchDetails(match.fixture.id);
+        setLineups(details.lineups);
+        setStats(details.statistics);
+      } catch (err) {
+        console.error('Erro ao buscar detalhes da partida:', err);
+        setError('Não foi possível carregar os detalhes desta partida.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDetails();
+  }, [match]);
+
+  if (!match) return null;
+
+  const { fixture, league, teams, goals } = match;
+  const isLive = ['1H', '2H', 'HT', 'ET', 'P', 'LIVE'].includes(fixture.status.short);
+  const isFinished = ['FT', 'AET', 'PEN'].includes(fixture.status.short);
+
+  // Vencedores
+  const homeWinner = teams.home.winner === true || (isFinished && (goals.home || 0) > (goals.away || 0));
+  const awayWinner = teams.away.winner === true || (isFinished && (goals.away || 0) > (goals.home || 0));
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
+  // Formata data e hora
+  const formattedDate = new Date(fixture.date).toLocaleDateString([], { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'short' 
+  });
+  const formattedTime = new Date(fixture.date).toLocaleTimeString([], { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+
+  return (
+    <div className="bottom-sheet-backdrop" onClick={handleBackdropClick}>
+      <div className="bottom-sheet-content">
+        
+        {/* Puxador para celular */}
+        <div className="bottom-sheet-handle" onClick={onClose}></div>
+
+        {/* Botão de Fechar Modal */}
+        <button 
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            right: '20px',
+            top: '20px',
+            background: 'rgba(255,255,255,0.05)',
+            border: 'none',
+            borderRadius: '50%',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-text-muted)',
+            cursor: 'pointer',
+            zIndex: 10
+          }}
+        >
+          <X size={18} />
+        </button>
+
+        {/* Header do Jogo (Liga e Status) */}
+        <div style={{ textAlign: 'center', marginBottom: '16px', paddingRight: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: '600' }}>
+            {league.logo && <img src={league.logo} alt="" width={16} style={{ objectFit: 'contain' }} />}
+            <span>{league.name}</span>
+            {league.round && <span>• {league.round}</span>}
+          </div>
+          
+          <div 
+            style={{ 
+              fontSize: '0.75rem', 
+              color: 'var(--color-text-dark)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              gap: '4px',
+              marginTop: '4px'
+            }}
+          >
+            <Calendar size={12} />
+            <span>{formattedDate} às {formattedTime}</span>
+          </div>
+        </div>
+
+        {/* Painel de Placar Central */}
+        <div 
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            padding: '10px 0 20px 0',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            marginBottom: '16px'
+          }}
+        >
+          {/* Time Mandante */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '6px' }}>
+            <TeamBadge name={teams.home.name} logoUrl={teams.home.logo} size={48} />
+            <span style={{ fontSize: '0.9rem', fontWeight: '700', color: homeWinner ? '#fff' : 'var(--color-text-main)' }}>
+              {teams.home.name}
+            </span>
+          </div>
+
+          {/* Placar / Tempo */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', minWidth: '100px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {(isLive || isFinished) ? (
+                <>
+                  <ScoreBadge score={goals.home} isLive={isLive} isWinner={homeWinner} />
+                  <span style={{ fontWeight: '800', opacity: 0.3 }}>-</span>
+                  <ScoreBadge score={goals.away} isLive={isLive} isWinner={awayWinner} />
+                </>
+              ) : (
+                <span style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--color-primary)' }}>VS</span>
+              )}
+            </div>
+
+            {/* Status do cronômetro */}
+            {isLive ? (
+              <span className="match-status-pill status-live">
+                <span className="badge-live-pulse animate-pulse-live"></span>
+                {fixture.status.short === 'HT' ? 'Intervalo' : `${fixture.status.elapsed}'`}
+              </span>
+            ) : isFinished ? (
+              <span className="match-status-pill status-finished">Encerrado</span>
+            ) : (
+              <span className="match-status-pill status-upcoming" style={{ fontSize: '0.65rem' }}>AGENDADO</span>
+            )}
+            
+            {/* Favoritar */}
+            <button
+              onClick={() => toggleFavorite(fixture.id)}
+              style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid var(--border-color)',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.7rem',
+                fontWeight: '700',
+                color: isFavorite(fixture.id) ? 'var(--color-warning)' : 'var(--color-text-muted)',
+                cursor: 'pointer',
+                marginTop: '4px'
+              }}
+            >
+              <Star size={12} fill={isFavorite(fixture.id) ? 'var(--color-warning)' : 'none'} />
+              <span>{isFavorite(fixture.id) ? 'Favoritado' : 'Monitorar'}</span>
+            </button>
+          </div>
+
+          {/* Time Visitante */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '6px' }}>
+            <TeamBadge name={teams.away.name} logoUrl={teams.away.logo} size={48} />
+            <span style={{ fontSize: '0.9rem', fontWeight: '700', color: awayWinner ? '#fff' : 'var(--color-text-main)' }}>
+              {teams.away.name}
+            </span>
+          </div>
+        </div>
+
+        {/* Resumo da Ópera */}
+        {match.summary && (
+          <div className="opera-summary-container">
+            <span className="opera-summary-icon">📝</span>
+            <div>
+              <strong style={{ color: 'var(--color-primary)', display: 'block', fontSize: '0.72rem', fontWeight: '800', marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Resumo da Ópera
+              </strong>
+              <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.85)' }}>{match.summary}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Navegação de Abas do Jogo */}
+        <div 
+          style={{ 
+            display: 'flex', 
+            borderBottom: '1px solid rgba(255,255,255,0.05)', 
+            marginBottom: '16px' 
+          }}
+        >
+          {/* Aba: Linha do Tempo */}
+          <button
+            onClick={() => setActiveTab('timeline')}
+            style={{
+              flex: 1,
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'timeline' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: activeTab === 'timeline' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              padding: '10px 0',
+              fontWeight: '700',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Activity size={14} />
+            <span>Lances</span>
+          </button>
+
+          {/* Aba: Escalações */}
+          <button
+            onClick={() => setActiveTab('lineups')}
+            style={{
+              flex: 1,
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'lineups' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: activeTab === 'lineups' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              padding: '10px 0',
+              fontWeight: '700',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Users size={14} />
+            <span>Escalações</span>
+          </button>
+
+          {/* Aba: Estatísticas */}
+          <button
+            onClick={() => setActiveTab('stats')}
+            style={{
+              flex: 1,
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'stats' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: activeTab === 'stats' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              padding: '10px 0',
+              fontWeight: '700',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <BarChart2 size={14} />
+            <span>Estatísticas</span>
+          </button>
+        </div>
+
+        {/* Área de Conteúdo da Aba */}
+        <div style={{ flex: 1, overflowY: 'auto', minHeight: '220px' }}>
+          {loading ? (
+            <div 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                height: '180px',
+                gap: '10px',
+                color: 'var(--color-text-muted)'
+              }}
+            >
+              <div 
+                style={{ 
+                  width: '24px', 
+                  height: '24px', 
+                  border: '2px solid var(--border-color)', 
+                  borderTopColor: 'var(--color-primary)', 
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite'
+                }}
+              ></div>
+              <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>Carregando dados táticos...</span>
+            </div>
+          ) : error ? (
+            <div style={{ textAlign: 'center', color: 'var(--color-danger)', padding: '30px 10px', fontSize: '0.85rem' }}>
+              {error}
+            </div>
+          ) : (
+            <>
+              {activeTab === 'timeline' && (
+                <MatchTimeline 
+                  events={match.events} 
+                  homeTeamId={teams.home.id} 
+                />
+              )}
+
+              {activeTab === 'lineups' && (
+                <PitchLineup lineups={lineups} />
+              )}
+
+              {activeTab === 'stats' && (
+                <StatsComparison 
+                  statistics={stats} 
+                  homeTeamName={teams.home.name} 
+                  awayTeamName={teams.away.name} 
+                />
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MatchDetailsSheet;

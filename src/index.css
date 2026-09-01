@@ -1,0 +1,620 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --font-sans: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', sans-serif;
+  
+  /* Cores - Estilo Wellness / Lifestyle Premium Feminino */
+  --bg-main: #14161d; /* Grafite Aveludado/Azul Profundo Suave */
+  --bg-card: rgba(28, 31, 38, 0.55); /* Frosted Glass */
+  --bg-card-hover: rgba(35, 39, 48, 0.75);
+  --border-color: rgba(255, 255, 255, 0.04);
+  --border-color-glow: rgba(157, 124, 252, 0.25); /* Glow Lavanda */
+  
+  /* Acentos */
+  --color-primary: #9d7cfc; /* Lavanda Elétrica */
+  --color-primary-glow: rgba(157, 124, 252, 0.08);
+  --color-accent: #ff7f66; /* Coral Vibrante (LIVE e Alertas) */
+  --color-accent-glow: rgba(255, 127, 102, 0.12);
+  --color-success-mint: #00e5bc; /* Menta Suave */
+  
+  /* Cores de Interação Premium */
+  --color-rosegold: #e0a990;
+  --color-rosegold-glow: rgba(224, 169, 144, 0.1);
+  --color-cream: #fbf7f4;
+  --color-text-main: #f5f5f7;
+  --color-text-muted: #a1a1a6;
+  --color-text-dark: #6e6e73;
+  
+  /* Sombras e Efeitos */
+  --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.25);
+  --shadow-glow: 0 0 20px rgba(157, 124, 252, 0.15);
+  --shadow-glow-coral: 0 0 20px rgba(255, 127, 102, 0.25);
+}
+
+/* Reset Geral */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(157, 124, 252, 0.05) 0px, transparent 40%),
+    radial-gradient(at 100% 100%, rgba(255, 127, 102, 0.03) 0px, transparent 45%);
+  background-attachment: fixed;
+  color: var(--color-text-main);
+  overflow-x: hidden;
+  line-height: 1.6;
+  font-family: var(--font-body);
+}
+
+/* Scrollbars Minimalistas */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Animações Suaves */
+@keyframes pulse-live {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 127, 102, 0.6);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(255, 127, 102, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(255, 127, 102, 0);
+  }
+}
+
+.animate-pulse-live {
+  animation: pulse-live 2.5s infinite;
+}
+
+@keyframes flash-goal {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(255, 127, 102, 0.12); }
+}
+
+.animate-goal-flash {
+  animation: flash-goal 2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@keyframes slide-up {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Tipografia Numérica Especial */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Layout Geral */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding-bottom: 84px; /* Mais respiro para celulares */
+}
+
+@media (min-width: 769px) {
+  .app-container {
+    padding-bottom: 0;
+  }
+}
+
+.main-content {
+  flex: 1;
+  width: 100%;
+  max-width: 1040px; /* Layout mais condensado e elegante */
+  margin: 0 auto;
+  padding: 24px 20px;
+}
+
+/* Efeito Vidro Fosco (Glassmorphism Suave) */
+.glass-panel {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px; /* Cantos arredondados extremos */
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-color-glow);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), var(--shadow-glow);
+}
+
+/* Header Minimalista */
+.header-wrap {
+  width: 100%;
+  border-bottom: 1px solid var(--border-color);
+  background: rgba(20, 22, 29, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.header-container {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Grid de Partidas - Com muito mais respiro */
+.matches-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+@media (min-width: 769px) {
+  .matches-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Cards de Jogo */
+.match-card {
+  padding: 20px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 160px;
+}
+
+.match-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.match-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.team-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.team-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.team-name {
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-text-main);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-name.winner {
+  color: #fff;
+  font-weight: 600;
+}
+
+.team-score {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text-main);
+}
+
+.team-score.winner {
+  color: var(--color-primary);
+}
+
+/* Pílulas de Status de Partida */
+.match-status-pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.status-live {
+  background: var(--color-accent-glow);
+  color: var(--color-accent);
+  border: 1px solid rgba(255, 127, 102, 0.15);
+}
+
+.status-upcoming {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.status-finished {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-text-dark);
+}
+
+/* Filtros horizontais em pílulas */
+.filter-scroll-container {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
+  padding: 10px 0;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+}
+.filter-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-pill {
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  color: var(--color-text-muted);
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+}
+
+.filter-pill:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--color-text-main);
+}
+
+.filter-pill.active {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 4px 12px rgba(157, 124, 252, 0.25);
+}
+
+/* Gaveta Inferior (Bottom Sheet) no Mobile */
+.bottom-sheet-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(11, 12, 16, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fade-in 0.2s ease-out;
+}
+
+.bottom-sheet-content {
+  width: 100%;
+  max-height: 88vh;
+  background: #171921; /* Grafite Aveludado */
+  border-top: 1px solid var(--border-color);
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  padding: 24px;
+  overflow-y: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+}
+
+.bottom-sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  margin: -12px auto 20px auto;
+  cursor: pointer;
+}
+
+/* Modais Desktop */
+@media (min-width: 769px) {
+  .bottom-sheet-backdrop {
+    align-items: center;
+  }
+
+  .bottom-sheet-content {
+    width: 580px;
+    max-height: 82vh;
+    border-radius: 24px;
+    border: 1px solid var(--border-color);
+  }
+  
+  .bottom-sheet-handle {
+    display: none;
+  }
+}
+
+/* Campo Tático (Pitch View) */
+.pitch-container {
+  width: 100%;
+  aspect-ratio: 1.8 / 2.6;
+  background-color: #21382e;
+  background-image: 
+    radial-gradient(circle at 50% 50%, transparent 20%, rgba(255,255,255,0.03) 21%, transparent 22%),
+    linear-gradient(to bottom, transparent 49.6%, rgba(255, 255, 255, 0.08) 50%, transparent 50.4%),
+    linear-gradient(to right, transparent 0%, transparent 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.4);
+}
+
+.pitch-formation {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 12px 0;
+  position: relative;
+}
+
+.pitch-row {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  width: 100%;
+}
+
+.pitch-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 54px;
+}
+
+.player-jersey {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  border: 1.5px solid #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+}
+
+.player-name-pitch {
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+  text-align: center;
+  white-space: nowrap;
+  max-width: 52px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Comparações de Estatísticas */
+.stat-bar-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.stat-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.stat-values {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.stat-progress-bar {
+  display: flex;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.stat-progress-home {
+  background: var(--color-primary);
+  height: 100%;
+  transition: width 0.5s ease-out;
+}
+
+.stat-progress-away {
+  background: var(--color-success-mint);
+  height: 100%;
+  transition: width 0.5s ease-out;
+}
+
+/* Barra de Navegação Inferior (Mobile) */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(23, 25, 33, 0.85); /* Grafite */
+  border-top: 1px solid var(--border-color);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  height: 68px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 40;
+  padding-bottom: 8px;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+  gap: 3px;
+  text-decoration: none;
+  cursor: pointer;
+  flex: 1;
+  height: 100%;
+}
+
+.bottom-nav-item.active {
+  color: var(--color-primary);
+}
+
+/* Toast de Gol Flutuante */
+.goal-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(25, 27, 35, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--color-accent);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3), var(--shadow-glow-coral);
+  padding: 12px 20px;
+  border-radius: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+  animation: slide-up 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 600;
+  font-size: 0.85rem;
+  pointer-events: none;
+  min-width: 280px;
+}
+
+/* Utilidades Layout */
+.badge-live-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background-color: var(--color-accent);
+  box-shadow: 0 0 6px var(--color-accent);
+}
+
+.settings-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color);
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 12px;
+  outline: none;
+  font-size: 0.85rem;
+  margin-top: 6px;
+  transition: border-color 0.2s;
+}
+
+.settings-input:focus {
+  border-color: var(--color-primary);
+}
+
+.btn-premium {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.85rem;
+}
+
+.btn-premium:hover {
+  background: #8b5cf6;
+  box-shadow: 0 4px 12px rgba(157, 124, 252, 0.3);
+}
+
+/* "Resumo da Ópera" Card Styles */
+.opera-summary-container {
+  background: rgba(157, 124, 252, 0.04);
+  border: 1px dashed rgba(157, 124, 252, 0.25);
+  border-radius: 16px;
+  padding: 14px 16px;
+  font-size: 0.8rem;
+  color: var(--color-text-main);
+  line-height: 1.5;
+  margin-bottom: 16px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.opera-summary-icon {
+  color: var(--color-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
