@@ -55,7 +55,7 @@ export const storageService = {
         ...DEFAULT_PREFS,
         ...parsed,
         apiKey: finalApiKey,
-        useSimulation: false // Sempre modo API ativo
+        useSimulation: parsed.useSimulation ?? false
       };
     } catch (e) {
       return DEFAULT_PREFS;
