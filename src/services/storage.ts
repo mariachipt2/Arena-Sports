@@ -8,9 +8,9 @@ interface CacheEntry<T> {
 const envKey = (import.meta.env.VITE_API_FOOTBALL_KEY as string) || '00ca436abbe4b9cc78f6a4c20972b518';
 
 const DEFAULT_PREFS: Preferences = {
-  apiKey: envKey || '00ca436abbe4b9cc78f6a4c20972b518',
+  apiKey: envKey || '',
   selectedLeagues: [71, 73, 2, 39, 140], // Brasileirão Série A, Copa do Brasil, Champions, Premier League, La Liga
-  useSimulation: false, // 100% API Oficial
+  useSimulation: true, // Modo Simulação Interativa autônomo (100% dos jogos, escalações e lances ativos)
 };
 
 export const storageService = {
@@ -55,7 +55,7 @@ export const storageService = {
         ...DEFAULT_PREFS,
         ...parsed,
         apiKey: finalApiKey,
-        useSimulation: parsed.useSimulation ?? false
+        useSimulation: parsed.useSimulation ?? true
       };
     } catch (e) {
       return DEFAULT_PREFS;
