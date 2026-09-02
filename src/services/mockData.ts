@@ -29,6 +29,50 @@ const mockFinishedMatches: ApiFixture[] = [
   },
   {
     fixture: {
+      id: 9910,
+      referee: "Ramon Abatti Abel",
+      timezone: "America/Sao_Paulo",
+      date: new Date(Date.now() - 5 * 3600 * 1000).toISOString(), // 5 horas atrás
+      timestamp: Math.floor((Date.now() - 5 * 3600 * 1000) / 1000),
+      status: { long: "Match Finished", short: "FT", elapsed: 90 }
+    },
+    league: { id: 71, name: "Brasileirão Série A", country: "Brazil", logo: "https://media.api-sports.io/football/leagues/71.png", flag: "https://media.api-sports.io/flags/br.svg", season: 2026 },
+    teams: {
+      home: { id: 135, name: "Cruzeiro", logo: "https://media.api-sports.io/football/teams/135.png", winner: true },
+      away: { id: 130, name: "Grêmio", logo: "https://media.api-sports.io/football/teams/130.png", winner: false }
+    },
+    goals: { home: 2, away: 0 },
+    score: {
+      halftime: { home: 1, away: 0 },
+      fulltime: { home: 2, away: 0 },
+      extratime: { home: null, away: null },
+      penalty: { home: null, away: null }
+    }
+  },
+  {
+    fixture: {
+      id: 9911,
+      referee: "Anderson Daronco",
+      timezone: "America/Sao_Paulo",
+      date: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
+      timestamp: Math.floor((Date.now() - 6 * 3600 * 1000) / 1000),
+      status: { long: "Match Finished", short: "FT", elapsed: 90 }
+    },
+    league: { id: 71, name: "Brasileirão Série A", country: "Brazil", logo: "https://media.api-sports.io/football/leagues/71.png", flag: "https://media.api-sports.io/flags/br.svg", season: 2026 },
+    teams: {
+      home: { id: 1062, name: "Atlético-MG", logo: "https://media.api-sports.io/football/teams/1062.png", winner: true },
+      away: { id: 118, name: "Bahia", logo: "https://media.api-sports.io/football/teams/118.png", winner: false }
+    },
+    goals: { home: 3, away: 1 },
+    score: {
+      halftime: { home: 2, away: 0 },
+      fulltime: { home: 3, away: 1 },
+      extratime: { home: null, away: null },
+      penalty: { home: null, away: null }
+    }
+  },
+  {
+    fixture: {
       id: 9902,
       referee: "Michael Oliver",
       timezone: "Europe/London",
