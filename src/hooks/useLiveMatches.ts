@@ -22,49 +22,36 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
   const previousLiveMatchesRef = useRef<ApiFixture[]>([]);
   const isTabVisibleRef = useRef(true);
 
-  // Carrega os dados da API ou do Mock
-  const fetchMatches = useCallback(async () => {
+  // Carrega apenas partidas ao vivo no polling periódico
+  const pollLiveMatches = useCallback(async () => {
     try {
       const prefs = storageService.getPreferences();
-      
-      // Se estiver em modo de simulação, atualiza a simulação na memória local
       if (prefs.useSimulation) {
         updateSimulation();
       }
 
-      // Busca partidas
       const liveData = await apiFootballService.getLiveMatches();
-      const dailyData = await apiFootballService.getDailyMatches();
-
       setLiveMatches(liveData);
-      setDailyMatches(dailyData);
       setLastUpdated(new Date());
-      setError(null);
 
-      // --- DETECÇÃO DE GOLS PARA NOTIFICAÇÕES (TOASTS) ---
+      // Detecção de gols
       const favorites = storageService.getFavorites();
-      
       if (previousLiveMatchesRef.current.length > 0 && onGoalScored) {
         liveData.forEach((currentMatch) => {
-          // Apenas notifica se for um jogo favoritado pelo usuário
           if (favorites.includes(currentMatch.fixture.id)) {
             const prevMatch = previousLiveMatchesRef.current.find(
               (m) => m.fixture.id === currentMatch.fixture.id
             );
-
             if (prevMatch) {
               const currentHome = currentMatch.goals.home || 0;
               const currentAway = currentMatch.goals.away || 0;
               const prevHome = prevMatch.goals.home || 0;
               const prevAway = prevMatch.goals.away || 0;
-
               const homeScored = currentHome > prevHome;
               const awayScored = currentAway > prevAway;
 
               if (homeScored || awayScored) {
                 const scoringTeam = homeScored ? currentMatch.teams.home : currentMatch.teams.away;
-                
-                // Pega o jogador do último gol cadastrado nos eventos da partida
                 const matchEvents = currentMatch.events || [];
                 const goalEvents = matchEvents.filter(e => e.type === 'Goal');
                 const lastGoal = goalEvents[goalEvents.length - 1];
@@ -82,8 +69,29 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
           }
         });
       }
+      previousLiveMatchesRef.current = liveData;
+    } catch (err) {
+      console.warn('Erro no polling ao vivo:', err);
+    }
+  }, [onGoalScored]);
 
-      // Atualiza a referência
+  // Carrega todos os dados (diários + ao vivo)
+  const fetchAllMatches = useCallback(async () => {
+    try {
+      const prefs = storageService.getPreferences();
+      if (prefs.useSimulation) {
+        updateSimulation();
+      }
+
+      const [liveData, dailyData] = await Promise.all([
+        apiFootballService.getLiveMatches(),
+        apiFootballService.getDailyMatches()
+      ]);
+
+      setLiveMatches(liveData);
+      setDailyMatches(dailyData);
+      setLastUpdated(new Date());
+      setError(null);
       previousLiveMatchesRef.current = liveData;
     } catch (err) {
       console.error('Erro ao buscar partidas:', err);
@@ -91,18 +99,18 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
     } finally {
       setLoading(false);
     }
-  }, [onGoalScored]);
+  }, []);
 
   // Efeito principal de Polling + Page Visibility
   useEffect(() => {
-    fetchMatches(); // Execução inicial
+    fetchAllMatches(); // Execução inicial completa
 
     // Ouvinte para detectar quando a aba está ativa ou minimizada
     const handleVisibilityChange = () => {
       isTabVisibleRef.current = document.visibilityState === 'visible';
       if (isTabVisibleRef.current) {
         console.log('[Visibility API] Aba ativa. Atualizando placares...');
-        fetchMatches();
+        pollLiveMatches();
       } else {
         console.log('[Visibility API] Aba minimizada. Polling pausado.');
       }
@@ -112,18 +120,18 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
 
     const handlePrefsChange = () => {
       console.log('[Preferences] Configurações alteradas. Recarregando partidas...');
-      fetchMatches();
+      fetchAllMatches();
     };
 
     window.addEventListener('preferencesChanged', handlePrefsChange);
 
-    // Configura o intervalo de atualização inteligente
+    // Intervalo de atualização apenas para jogos ao vivo
     const prefs = storageService.getPreferences();
     const intervalTime = prefs.useSimulation ? 5000 : 60000;
 
     const intervalId = setInterval(() => {
       if (isTabVisibleRef.current) {
-        fetchMatches();
+        pollLiveMatches();
       }
     }, intervalTime);
 
@@ -132,7 +140,7 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('preferencesChanged', handlePrefsChange);
     };
-  }, [fetchMatches]);
+  }, [fetchAllMatches, pollLiveMatches]);
 
   return {
     liveMatches,
@@ -140,6 +148,6 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
     loading,
     error,
     lastUpdated,
-    refetch: fetchMatches
+    refetch: fetchAllMatches
   };
 };

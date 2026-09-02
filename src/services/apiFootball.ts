@@ -112,8 +112,9 @@ export const apiFootballService = {
 
     const today = getTodayDateString();
     try {
-      // Endpoint da API: fixtures?date=YYYY-MM-DD
-      const apiMatches = await this.fetchFromApi<ApiFixture[]>(`fixtures?date=${today}`, `fixtures_${today}`, 15);
+      // Endpoint da API: fixtures?date=YYYY-MM-DD com CACHE DE 24 HORAS (1440 min)
+      // Uma vez buscado no dia, NÃO consome mais nenhuma requisição da cota diária!
+      const apiMatches = await this.fetchFromApi<ApiFixture[]>(`fixtures?date=${today}`, `fixtures_${today}`, 1440);
       if (apiMatches && apiMatches.length > 0) {
         return apiMatches;
       }
@@ -136,18 +137,17 @@ export const apiFootballService = {
     statistics: MatchStatistics[];
   }> {
     try {
-      // Faz requisições em paralelo para otimizar tempo
-      // Cache de 30 minutos para detalhes de partida (já que mudam pouco ou são fixos pós-jogo)
+      // Cache de 24 horas (1440 minutos) para detalhes e escalações da partida
       const lineupsPromise = this.fetchFromApi<MatchLineup[]>(
         `fixtures/lineups?fixture=${fixtureId}`, 
         `lineups_${fixtureId}`, 
-        30
+        1440
       );
       
       const statsPromise = this.fetchFromApi<MatchStatistics[]>(
         `fixtures/statistics?fixture=${fixtureId}`, 
         `stats_${fixtureId}`, 
-        30
+        1440
       );
 
       const [lineups, statistics] = await Promise.all([lineupsPromise, statsPromise]);
