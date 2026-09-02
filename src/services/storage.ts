@@ -5,12 +5,12 @@ interface CacheEntry<T> {
   expiry: number; // Timestamp
 }
 
-const envKey = (import.meta.env.VITE_API_FOOTBALL_KEY as string) || '569319a5928dc79a97a43d90785a0558';
+const envKey = (import.meta.env.VITE_API_FOOTBALL_KEY as string) || '00ca436abbe4b9cc78f6a4c20972b518';
 
 const DEFAULT_PREFS: Preferences = {
-  apiKey: envKey || '569319a5928dc79a97a43d90785a0558',
+  apiKey: envKey || '00ca436abbe4b9cc78f6a4c20972b518',
   selectedLeagues: [71, 73, 2, 39, 140], // Brasileirão Série A, Copa do Brasil, Champions, Premier League, La Liga
-  useSimulation: true, // Garante que partidas (Cruzeiro x Atlético, etc.) sempre apareçam de imediato
+  useSimulation: false, // 100% API Oficial
 };
 
 export const storageService = {
