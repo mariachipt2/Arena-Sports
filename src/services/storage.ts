@@ -95,21 +95,43 @@ export const storageService = {
   },
 
   // --- COTA DA API ---
-  getQuota(): QuotaInfo | null {
+  getQuota(): QuotaInfo {
     try {
       const quota = localStorage.getItem('arena_quota');
-      if (!quota) return null;
+      if (!quota) {
+        // Inicializa com 65% usado (35 restantes) conforme estado atual informado
+        const initialQuota: QuotaInfo = {
+          limit: 100,
+          remaining: 35,
+          resetDate: '21:00 BRT'
+        };
+        localStorage.setItem('arena_quota', JSON.stringify(initialQuota));
+        return initialQuota;
+      }
       return JSON.parse(quota);
     } catch (e) {
-      return null;
+      return { limit: 100, remaining: 35, resetDate: '21:00 BRT' };
     }
   },
 
   saveQuota(quota: QuotaInfo): void {
     try {
       localStorage.setItem('arena_quota', JSON.stringify(quota));
+      window.dispatchEvent(new Event('quotaChanged'));
     } catch (e) {
       console.error('Erro ao salvar cota:', e);
+    }
+  },
+
+  decrementQuota(): void {
+    try {
+      const current = this.getQuota();
+      if (current && current.remaining > 0) {
+        current.remaining = Math.max(0, current.remaining - 1);
+        this.saveQuota(current);
+      }
+    } catch (e) {
+      console.warn('Erro ao decrementar cota:', e);
     }
   },
 

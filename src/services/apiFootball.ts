@@ -16,7 +16,7 @@ const getTodayDateString = (): string => {
 };
 
 // Captura e atualiza informações de cota a partir dos headers de resposta da API
-const updateQuotaFromHeaders = (headers: Headers) => {
+const updateQuotaFromHeaders = (headers: Headers): boolean => {
   const remaining = headers.get('x-ratelimit-requests-remaining');
   const limit = headers.get('x-ratelimit-requests-limit');
 
@@ -24,13 +24,45 @@ const updateQuotaFromHeaders = (headers: Headers) => {
     const quota: QuotaInfo = {
       limit: parseInt(limit, 10),
       remaining: parseInt(remaining, 10),
-      resetDate: new Date(Date.now() + 24 * 3600 * 1000).toLocaleTimeString() // Estimativa simplificada de reset
+      resetDate: '21:00 BRT'
     };
     storageService.saveQuota(quota);
+    return true;
   }
+  return false;
 };
 
 export const apiFootballService = {
+  // Sincroniza a cota oficial a partir do endpoint /status da API-Football
+  async syncQuotaStatus(): Promise<void> {
+    const prefs = storageService.getPreferences();
+    if (prefs.useSimulation || !prefs.apiKey) return;
+
+    try {
+      const response = await fetch(`${API_URL}/status`, {
+        method: 'GET',
+        headers: {
+          'x-rapidapi-host': API_HOST,
+          'x-apisports-key': prefs.apiKey
+        }
+      });
+      if (response.ok) {
+        const json = await response.json();
+        if (json.response?.requests) {
+          const current = json.response.requests.current ?? 65;
+          const limit = json.response.requests.limit_day ?? 100;
+          storageService.saveQuota({
+            limit,
+            remaining: Math.max(0, limit - current),
+            resetDate: '21:00 BRT'
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('Não foi possível verificar status da cota:', e);
+    }
+  },
+
   async fetchFromApi<T>(endpoint: string, cacheKey: string, cacheDurationMinutes: number): Promise<T> {
     const prefs = storageService.getPreferences();
 
@@ -68,8 +100,11 @@ export const apiFootballService = {
       throw new Error(JSON.stringify(json.errors));
     }
 
-    // Atualiza cota através dos headers da resposta
-    updateQuotaFromHeaders(response.headers);
+    // Atualiza cota através dos headers da resposta ou decrementa localmente
+    const updatedFromHeaders = updateQuotaFromHeaders(response.headers);
+    if (!updatedFromHeaders) {
+      storageService.decrementQuota();
+    }
 
     const result = json.response as T;
 

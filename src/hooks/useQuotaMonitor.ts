@@ -19,8 +19,17 @@ export const useQuotaMonitor = () => {
       }
     };
 
+    const handleLocalQuotaChange = () => {
+      refreshQuota();
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('quotaChanged', handleLocalQuotaChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('quotaChanged', handleLocalQuotaChange);
+    };
   }, [refreshQuota]);
 
   return {

@@ -93,6 +93,11 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
       setLastUpdated(new Date());
       setError(null);
       previousLiveMatchesRef.current = liveData;
+
+      // Sincroniza status oficial da cota caso esteja usando a API Real
+      if (!prefs.useSimulation) {
+        apiFootballService.syncQuotaStatus();
+      }
     } catch (err) {
       console.error('Erro ao buscar partidas:', err);
       setError('Erro ao atualizar dados esportivos.');
@@ -101,16 +106,22 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
     }
   }, []);
 
-  // Efeito principal de Polling + Page Visibility
+  // Efeito de inicialização e eventos de visibilidade / preferências
   useEffect(() => {
     fetchAllMatches(); // Execução inicial completa
 
-    // Ouvinte para detectar quando a aba está ativa ou minimizada
     const handleVisibilityChange = () => {
       isTabVisibleRef.current = document.visibilityState === 'visible';
       if (isTabVisibleRef.current) {
-        console.log('[Visibility API] Aba ativa. Atualizando placares...');
-        pollLiveMatches();
+        const prefs = storageService.getPreferences();
+        if (prefs.useSimulation) {
+          pollLiveMatches();
+        } else if (previousLiveMatchesRef.current.length > 0) {
+          console.log('[Visibility API] Aba ativa com jogos ao vivo. Atualizando placares...');
+          pollLiveMatches();
+        } else {
+          console.log('[Visibility API] Aba ativa, mas sem jogos ao vivo. Polling mantido em pausa para economizar cota.');
+        }
       } else {
         console.log('[Visibility API] Aba minimizada. Polling pausado.');
       }
@@ -125,22 +136,44 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
 
     window.addEventListener('preferencesChanged', handlePrefsChange);
 
-    // Intervalo de atualização apenas para jogos ao vivo
-    const prefs = storageService.getPreferences();
-    const intervalTime = prefs.useSimulation ? 5000 : 60000;
-
-    const intervalId = setInterval(() => {
-      if (isTabVisibleRef.current) {
-        pollLiveMatches();
-      }
-    }, intervalTime);
-
     return () => {
-      clearInterval(intervalId);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('preferencesChanged', handlePrefsChange);
     };
   }, [fetchAllMatches, pollLiveMatches]);
+
+  // Efeito de Polling inteligente e econômico
+  useEffect(() => {
+    const prefs = storageService.getPreferences();
+
+    // 1. Modo Simulação: atualiza a cada 5 segundos para testes rápidos e fluidos de design
+    if (prefs.useSimulation) {
+      const intervalId = setInterval(() => {
+        if (isTabVisibleRef.current) {
+          pollLiveMatches();
+        }
+      }, 5000);
+      return () => clearInterval(intervalId);
+    }
+
+    // 2. Modo Real (API-Football):
+    // Se NÃO houver partidas ao vivo acontecendo no momento, PAUSA o polling completamente!
+    const hasLiveMatches = liveMatches.length > 0;
+    if (!hasLiveMatches) {
+      console.log('[Polling Pausado] Nenhuma partida ao vivo no momento. Polling suspenso para poupar cota da API.');
+      return;
+    }
+
+    // Se houver partidas ao vivo, consulta em intervalo ampliado (3 minutos = 180.000 ms) para proteger a cota
+    console.log('[Polling Ativo] Partidas ao vivo em andamento. Consultando a cada 3 minutos...');
+    const intervalId = setInterval(() => {
+      if (isTabVisibleRef.current) {
+        pollLiveMatches();
+      }
+    }, 180000); // 3 minutos
+
+    return () => clearInterval(intervalId);
+  }, [pollLiveMatches, liveMatches.length]);
 
   return {
     liveMatches,

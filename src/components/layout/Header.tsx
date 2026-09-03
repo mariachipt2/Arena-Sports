@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, Database, Sparkles, Clock, RefreshCw, Activity, Calendar, CheckCircle2, Star, Search } from 'lucide-react';
+import { Settings, Database, Sparkles, Clock, Activity, Calendar, CheckCircle2, Star, Search } from 'lucide-react';
 import { useQuotaMonitor } from '../../hooks/useQuotaMonitor';
 import { storageService } from '../../services/storage';
 import type { TabType } from '../../types/dashboard';
@@ -9,8 +9,8 @@ interface HeaderProps {
   setActiveTab: (tab: TabType) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  onRefresh: () => void;
-  isUpdating: boolean;
+  onRefresh?: () => void;
+  isUpdating?: boolean;
   liveCount?: number;
 }
 
@@ -19,8 +19,6 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   searchQuery,
   setSearchQuery,
-  onRefresh,
-  isUpdating,
   liveCount = 0
 }) => {
   const { quota, refreshQuota } = useQuotaMonitor();
@@ -167,55 +165,68 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* Status da Conexão / Cota */}
-          <div 
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '6px', 
-              padding: '4px 10px', 
-              borderRadius: '8px', 
-              backgroundColor: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--border-color)',
-              fontSize: '0.72rem',
-              fontWeight: '600'
-            }}
-          >
-            {isSimulated ? (
-              <>
-                <Sparkles size={12} style={{ color: 'var(--color-success-mint)' }} />
-                <span style={{ color: 'var(--color-success-mint)' }}>Simulação</span>
-              </>
-            ) : (
-              <>
-                <Database size={12} style={{ color: 'var(--color-primary)' }} />
-                <span style={{ color: 'var(--color-text-muted)' }}>
-                  API: {quota ? `${quota.remaining}/${quota.limit}` : '--/100'}
-                </span>
-              </>
-            )}
-          </div>
+          {isSimulated ? (
+            <button
+              onClick={() => setActiveTab('settings')}
+              title="Modo Simulação ativo: perfeito para testar o design sem gastar cota da API. Clique para configurar."
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(46, 213, 115, 0.1)',
+                border: '1px solid rgba(46, 213, 115, 0.3)',
+                fontSize: '0.74rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                color: 'var(--color-success-mint)',
+                transition: 'all 0.2s',
+                boxShadow: '0 0 10px rgba(46, 213, 115, 0.15)'
+              }}
+            >
+              <Sparkles size={13} />
+              <span>Simulação (Design / 0 requisições)</span>
+            </button>
+          ) : (
+            (() => {
+              const limit = quota?.limit ?? 100;
+              const remaining = quota?.remaining ?? 35;
+              const used = Math.max(0, limit - remaining);
+              const percentUsed = Math.min(100, Math.max(0, Math.round((used / limit) * 100)));
 
-          {/* Botão de Refresh Manual */}
-          <button
-            onClick={onRefresh}
-            style={{
-              background: 'none',
-              color: 'var(--color-text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '6px',
-              borderRadius: '8px',
-              backgroundColor: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--border-color)',
-              transition: 'all 0.2s'
-            }}
-            title="Atualizar dados"
-            disabled={isUpdating}
-          >
-            <RefreshCw size={14} className={isUpdating ? 'spin' : ''} style={{ animation: isUpdating ? 'spin 1s linear infinite' : 'none' }} />
-          </button>
+              // Cores dinâmicas de acordo com o consumo
+              const color = percentUsed >= 80 ? '#ff4757' : percentUsed >= 50 ? '#ffa502' : '#2ed573';
+              const bg = percentUsed >= 80 ? 'rgba(255, 71, 87, 0.12)' : percentUsed >= 50 ? 'rgba(255, 165, 2, 0.12)' : 'rgba(46, 213, 115, 0.12)';
+              const borderColor = percentUsed >= 80 ? 'rgba(255, 71, 87, 0.3)' : percentUsed >= 50 ? 'rgba(255, 165, 2, 0.3)' : 'rgba(46, 213, 115, 0.3)';
+
+              return (
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  title={`Cota da API: ${used}/${limit} requisições usadas (${remaining} restantes). Reseta às 21:00 BRT. Clique para gerenciar.`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '7px',
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: bg,
+                    border: `1px solid ${borderColor}`,
+                    fontSize: '0.74rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    color: '#fff',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <Database size={13} style={{ color }} />
+                  <span>
+                    API: <strong style={{ color }}>{percentUsed}% usado</strong> ({remaining}/{limit})
+                  </span>
+                </button>
+              );
+            })()
+          )}
 
           {/* Botão de Configurações */}
           <button
