@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Header } from './components/layout/Header';
 import { BottomNav } from './components/layout/BottomNav';
 import { ToastGoal } from './components/layout/ToastGoal';
@@ -11,12 +11,18 @@ import { useFavorites } from './hooks/useFavorites';
 import type { ApiFixture } from './types/api';
 import type { TabType, FilterType } from './types/dashboard';
 import { storageService } from './services/storage';
+import { notificationService } from './services/notificationService';
 
 function App() {
   const [activeTab, setActiveTab] = useState<TabType>('live');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedMatch, setSelectedMatch] = useState<ApiFixture | null>(null);
+
+  // Inicializa o serviço de notificações e Service Worker para celular
+  useEffect(() => {
+    notificationService.init();
+  }, []);
   
   // Estado para alertas de gol
   const [activeGoalAlert, setActiveGoalAlert] = useState<{
@@ -31,7 +37,7 @@ function App() {
 
   // Callback acionado pelo hook useLiveMatches quando um time marca gol em um jogo favoritado
   const handleGoalScored = useCallback((event: any) => {
-    // Configura o alert
+    // Configura o alert visual in-app
     setActiveGoalAlert({
       match: event.match,
       scoringTeam: event.scoringTeam,
@@ -39,6 +45,15 @@ function App() {
       scoreHome: event.scoreHome,
       scoreAway: event.scoreAway
     });
+
+    // Dispara notificação nativa no celular se o usuário tiver permitido
+    notificationService.notifyGoal(
+      event.scoringTeam?.name || 'Time',
+      event.player || '',
+      event.scoreHome,
+      event.scoreAway,
+      event.match
+    );
 
     // Se suportado pelo dispositivo, executa haptic feedback (vibração)
     if (typeof navigator !== 'undefined' && navigator.vibrate) {

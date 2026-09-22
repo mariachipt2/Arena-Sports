@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CalendarPlus, Check, ExternalLink, Download } from 'lucide-react';
+import { CalendarPlus, Check, ExternalLink, Download, Bell, BellOff, Smartphone, Sparkles } from 'lucide-react';
 import type { ApiFixture } from '../../types/api';
 import { calendarUtils } from '../../utils/calendar';
+import { notificationService } from '../../services/notificationService';
 
 interface CalendarButtonProps {
   match: ApiFixture;
@@ -11,7 +12,21 @@ interface CalendarButtonProps {
 export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant = 'full' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isScheduled, setIsScheduled] = useState<boolean>(() =>
+    notificationService.isReminderScheduled(match.fixture.id)
+  );
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkScheduled = () => {
+      setIsScheduled(notificationService.isReminderScheduled(match.fixture.id));
+    };
+
+    window.addEventListener('remindersChanged', checkScheduled);
+    return () => {
+      window.removeEventListener('remindersChanged', checkScheduled);
+    };
+  }, [match.fixture.id]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -27,24 +42,57 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
     };
   }, [isOpen]);
 
+  const handleTogglePhoneNotification = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isScheduled) {
+      notificationService.cancelReminder(match.fixture.id);
+      setIsScheduled(false);
+      setFeedback('Lembrete cancelado');
+    } else {
+      const success = await notificationService.scheduleReminder(match, 15);
+      if (success) {
+        setIsScheduled(true);
+        setFeedback('Alerta ativado no celular!');
+      } else {
+        setFeedback('Permissão negada');
+      }
+    }
+    setTimeout(() => {
+      setFeedback(null);
+    }, 2500);
+  };
+
   const handleGoogleCalendar = (e: React.MouseEvent) => {
     e.stopPropagation();
     calendarUtils.openGoogleCalendar(match);
-    setFeedback('Google');
+    setFeedback('Google Agenda aberto');
     setTimeout(() => {
       setFeedback(null);
       setIsOpen(false);
-    }, 1500);
+    }, 1800);
   };
 
-  const handleAppleCalendar = (e: React.MouseEvent) => {
+  const handleMobileCalendarSync = (e: React.MouseEvent) => {
     e.stopPropagation();
-    calendarUtils.downloadIcsFile(match);
-    setFeedback('Apple (.ics)');
+    calendarUtils.syncMobileCalendar(match);
+    setFeedback('Evento com alarmes baixado');
     setTimeout(() => {
       setFeedback(null);
       setIsOpen(false);
-    }, 1500);
+    }, 1800);
+  };
+
+  const handleTestNotification = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const ok = await notificationService.testNotification();
+    if (ok) {
+      setFeedback('Notificação enviada ao celular!');
+    } else {
+      setFeedback('Permita notificações no navegador');
+    }
+    setTimeout(() => {
+      setFeedback(null);
+    }, 2500);
   };
 
   return (
@@ -54,10 +102,18 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
           e.stopPropagation();
           setIsOpen(!isOpen);
         }}
-        title="Adicionar jogo ao Calendário Google ou Apple"
+        title={isScheduled ? "Lembrete ativo no celular para esta partida" : "Adicionar à agenda ou ativar lembrete no celular"}
         style={{
-          background: isOpen ? 'var(--color-primary-glow)' : 'rgba(255,255,255,0.04)',
-          border: isOpen ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
+          background: isScheduled
+            ? 'rgba(46, 213, 115, 0.15)'
+            : isOpen
+            ? 'var(--color-primary-glow)'
+            : 'rgba(255,255,255,0.04)',
+          border: isScheduled
+            ? '1px solid var(--color-success-mint)'
+            : isOpen
+            ? '1px solid var(--color-primary)'
+            : '1px solid var(--border-color)',
           borderRadius: '8px',
           padding: variant === 'compact' ? '4px 8px' : '5px 12px',
           display: 'flex',
@@ -65,14 +121,25 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
           gap: '6px',
           fontSize: '0.72rem',
           fontWeight: '700',
-          color: isOpen ? 'var(--color-primary)' : 'var(--color-text-main)',
+          color: isScheduled
+            ? 'var(--color-success-mint)'
+            : isOpen
+            ? 'var(--color-primary)'
+            : 'var(--color-text-main)',
           cursor: 'pointer',
-          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+          transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: isScheduled ? '0 0 10px rgba(46, 213, 115, 0.2)' : 'none'
         }}
         className="calendar-btn-trigger"
       >
-        <CalendarPlus size={13} style={{ color: 'var(--color-primary)' }} />
-        {variant === 'full' && <span>Adicionar à Agenda</span>}
+        {isScheduled ? (
+          <Bell size={13} style={{ color: 'var(--color-success-mint)', animation: 'pulse 1.5s infinite' }} />
+        ) : (
+          <CalendarPlus size={13} style={{ color: 'var(--color-primary)' }} />
+        )}
+        {variant === 'full' && (
+          <span>{isScheduled ? 'Alerta Ativo' : 'Adicionar à Agenda'}</span>
+        )}
       </button>
 
       {/* Dropdown Menu com visual Glassmorphism */}
@@ -83,25 +150,83 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
             top: 'calc(100% + 6px)',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: 'rgba(22, 25, 33, 0.95)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            borderRadius: '12px',
-            boxShadow: '0 12px 32px rgba(0, 0, 0, 0.5), 0 0 16px var(--border-color-glow)',
-            padding: '6px',
-            minWidth: '210px',
+            background: 'rgba(18, 21, 28, 0.96)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '14px',
+            boxShadow: '0 16px 40px rgba(0, 0, 0, 0.65), 0 0 20px rgba(0, 240, 255, 0.12)',
+            padding: '8px',
+            minWidth: '270px',
             zIndex: 100,
             display: 'flex',
             flexDirection: 'column',
-            gap: '4px',
+            gap: '6px',
             animation: 'fadeInMenu 0.18s ease-out'
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div style={{ padding: '6px 8px 4px 8px', fontSize: '0.65rem', fontWeight: '800', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Salvar Partida na Agenda
+          {/* Cabeçalho do menu */}
+          <div style={{ padding: '6px 8px 4px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.65rem', fontWeight: '800', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Agenda & Notificações
+            </span>
+            {feedback && (
+              <span style={{ fontSize: '0.65rem', fontWeight: '700', color: 'var(--color-success-mint)', animation: 'fadeIn 0.2s' }}>
+                {feedback}
+              </span>
+            )}
           </div>
+
+          {/* Destaque Principal: Alerta Push no Celular */}
+          <button
+            onClick={handleTogglePhoneNotification}
+            style={{
+              background: isScheduled ? 'rgba(46, 213, 115, 0.15)' : 'rgba(0, 240, 255, 0.08)',
+              border: isScheduled ? '1px solid var(--color-success-mint)' : '1px solid rgba(0, 240, 255, 0.3)',
+              borderRadius: '10px',
+              padding: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              color: '#fff',
+              fontSize: '0.78rem',
+              fontWeight: '700',
+              textAlign: 'left',
+              transition: 'all 0.2s ease'
+            }}
+            className="calendar-dropdown-highlight"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '8px',
+                  background: isScheduled ? 'rgba(46, 213, 115, 0.2)' : 'rgba(0, 240, 255, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                {isScheduled ? (
+                  <BellOff size={16} style={{ color: 'var(--color-success-mint)' }} />
+                ) : (
+                  <Bell size={16} style={{ color: 'var(--color-primary)' }} />
+                )}
+              </div>
+              <div>
+                <div style={{ color: isScheduled ? 'var(--color-success-mint)' : '#fff' }}>
+                  {isScheduled ? 'Desativar Alerta no Celular' : '🔔 Notificar no Celular'}
+                </div>
+                <div style={{ fontSize: '0.66rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                  {isScheduled ? 'Aviso agendado 15 min antes' : 'Som + vibração 15 min antes do jogo'}
+                </div>
+              </div>
+            </div>
+            {isScheduled && <Check size={16} style={{ color: 'var(--color-success-mint)' }} />}
+          </button>
 
           {/* Opção 1: Google Agenda */}
           <button
@@ -124,22 +249,18 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
             className="calendar-dropdown-item"
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1rem' }}>🗓️</span>
+              <span style={{ fontSize: '1.05rem' }}>🗓️</span>
               <div>
                 <div>Google Agenda</div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Abre direto no navegador</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Sincroniza na sua conta Google</div>
               </div>
             </div>
-            {feedback === 'Google' ? (
-              <Check size={14} style={{ color: 'var(--color-success-mint)' }} />
-            ) : (
-              <ExternalLink size={13} style={{ color: 'var(--color-text-muted)' }} />
-            )}
+            <ExternalLink size={13} style={{ color: 'var(--color-text-muted)' }} />
           </button>
 
-          {/* Opção 2: Apple Calendário / iCal */}
+          {/* Opção 2: Calendário do Celular (Google / Apple com Alarmes) */}
           <button
-            onClick={handleAppleCalendar}
+            onClick={handleMobileCalendarSync}
             style={{
               background: 'transparent',
               border: 'none',
@@ -158,17 +279,40 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
             className="calendar-dropdown-item"
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '1rem' }}>🍏</span>
+              <Smartphone size={16} style={{ color: '#00f0ff' }} />
               <div>
-                <div>Apple / iCal (.ics)</div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Com alarme 15 min antes</div>
+                <div>App Google Agenda / Celular (.ics)</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Com alarme de 15m e 30m no aparelho</div>
               </div>
             </div>
-            {feedback?.includes('Apple') ? (
-              <Check size={14} style={{ color: 'var(--color-success-mint)' }} />
-            ) : (
-              <Download size={13} style={{ color: 'var(--color-text-muted)' }} />
-            )}
+            <Download size={13} style={{ color: 'var(--color-text-muted)' }} />
+          </button>
+
+          {/* Divisor */}
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '2px 0' }} />
+
+          {/* Teste de Notificação no Aparelho */}
+          <button
+            onClick={handleTestNotification}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '6px',
+              padding: '6px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              color: 'var(--color-text-muted)',
+              fontSize: '0.68rem',
+              fontWeight: '600',
+              textAlign: 'left',
+              transition: 'color 0.15s'
+            }}
+            className="calendar-test-btn"
+          >
+            <Sparkles size={12} style={{ color: 'var(--color-primary)' }} />
+            <span>Testar notificação agora no meu celular</span>
           </button>
         </div>
       )}
@@ -186,6 +330,12 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
         }
         .calendar-dropdown-item:hover {
           background: rgba(255, 255, 255, 0.08) !important;
+        }
+        .calendar-dropdown-highlight:hover {
+          filter: brightness(1.1);
+        }
+        .calendar-test-btn:hover {
+          color: #fff !important;
         }
         .calendar-btn-trigger:hover {
           border-color: var(--color-primary) !important;

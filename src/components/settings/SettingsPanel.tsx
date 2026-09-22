@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, Sparkles, Database, Key, Info, ShieldCheck, Palette, RotateCcw } from 'lucide-react';
+import { Save, Check, Sparkles, Database, Key, Info, ShieldCheck, Palette, RotateCcw, Bell, Smartphone, Trash2 } from 'lucide-react';
 import { storageService } from '../../services/storage';
+import { notificationService, type ScheduledReminder } from '../../services/notificationService';
 import { useQuotaMonitor } from '../../hooks/useQuotaMonitor';
 import { useTeamTheme } from '../../hooks/useTeamTheme';
 import type { Preferences } from '../../types/dashboard';
@@ -9,15 +10,29 @@ import { POPULAR_LEAGUES } from '../../types/dashboard';
 export const SettingsPanel: React.FC = () => {
   const { quota } = useQuotaMonitor();
   const { currentTheme, isCustomThemeActive, selectTheme, resetTheme, popularThemes } = useTeamTheme();
-  const [prefs, setPrefs] = useState<Preferences>({
-    apiKey: '',
-    selectedLeagues: [],
-    useSimulation: true
-  });
+  const [prefs, setPrefs] = useState<Preferences>(() => storageService.getPreferences());
   const [saved, setSaved] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>(() =>
+    notificationService.getPermissionStatus()
+  );
+  const [reminders, setReminders] = useState<ScheduledReminder[]>(() =>
+    notificationService.getReminders()
+  );
+  const [testStatus, setTestStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    setPrefs(storageService.getPreferences());
+    const updateNotifState = () => {
+      setNotifPermission(notificationService.getPermissionStatus());
+      setReminders(notificationService.getReminders());
+    };
+
+    window.addEventListener('notificationPermissionChanged', updateNotifState);
+    window.addEventListener('remindersChanged', updateNotifState);
+
+    return () => {
+      window.removeEventListener('notificationPermissionChanged', updateNotifState);
+      window.removeEventListener('remindersChanged', updateNotifState);
+    };
   }, []);
 
   const handleLeagueToggle = (leagueId: number) => {
@@ -315,6 +330,192 @@ export const SettingsPanel: React.FC = () => {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+
+      {/* Seção - Notificações no Celular & Google Agenda */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Bell size={16} style={{ color: 'var(--color-primary)' }} />
+            <span>Notificações no Celular & Google Agenda</span>
+          </h3>
+          <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+            Configure alertas sonoros no celular para início de partidas e gols em tempo real.
+          </p>
+        </div>
+
+        {/* Card de Status da Permissão */}
+        <div
+          style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            padding: '14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Smartphone size={18} style={{ color: notifPermission === 'granted' ? 'var(--color-success-mint)' : 'var(--color-text-muted)' }} />
+              <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#fff' }}>
+                  Status das Notificações do Aparelho
+                </div>
+                <div style={{ fontSize: '0.7rem', color: notifPermission === 'granted' ? 'var(--color-success-mint)' : notifPermission === 'denied' ? '#ff4757' : 'var(--color-warning)' }}>
+                  {notifPermission === 'granted' && '✅ Ativas e prontas para alertar no celular'}
+                  {notifPermission === 'default' && '⏳ Permissão ainda não solicitada'}
+                  {notifPermission === 'denied' && '❌ Bloqueadas no navegador (libere nas permissões do site)'}
+                  {notifPermission === 'unsupported' && '⚠️ Navegador não suporta notificações nativas'}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {notifPermission !== 'granted' && notifPermission !== 'unsupported' && (
+                <button
+                  onClick={async () => {
+                    await notificationService.requestPermission();
+                  }}
+                  style={{
+                    background: 'var(--color-primary)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    fontSize: '0.72rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  Ativar no Celular
+                </button>
+              )}
+
+              <button
+                onClick={async () => {
+                  setTestStatus('Enviando teste...');
+                  const ok = await notificationService.testNotification();
+                  if (ok) {
+                    setTestStatus('Notificação de teste enviada!');
+                  } else {
+                    setTestStatus('Falha: ative as notificações acima');
+                  }
+                  setTimeout(() => setTestStatus(null), 3000);
+                }}
+                style={{
+                  background: 'rgba(0, 240, 255, 0.08)',
+                  border: '1px solid rgba(0, 240, 255, 0.3)',
+                  color: '#00f0ff',
+                  borderRadius: '8px',
+                  padding: '6px 12px',
+                  fontSize: '0.72rem',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <Sparkles size={12} />
+                <span>{testStatus || 'Testar no Aparelho'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Dica de Integração com Google Agenda */}
+          <div
+            style={{
+              padding: '10px',
+              borderRadius: '8px',
+              background: 'rgba(0, 240, 255, 0.04)',
+              border: '1px solid rgba(0, 240, 255, 0.12)',
+              fontSize: '0.72rem',
+              color: 'var(--color-text-muted)',
+              lineHeight: '1.4'
+            }}
+          >
+            💡 <strong style={{ color: '#fff' }}>Google Agenda com Alarme:</strong> Ao clicar no botão de agenda de qualquer jogo, você pode adicionar a partida diretamente ao Google Agenda ou baixar o arquivo com alarmes sonoros automáticos de <strong>15 e 30 minutos antes</strong> do jogo.
+          </div>
+        </div>
+
+        {/* Lembretes de Jogos Ativos */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#fff' }}>
+              Partidas com Alerta Agendado ({reminders.filter(r => !r.notified).length})
+            </span>
+          </div>
+
+          {reminders.filter(r => !r.notified).length === 0 ? (
+            <div
+              style={{
+                padding: '16px',
+                borderRadius: '10px',
+                background: 'rgba(255,255,255,0.01)',
+                border: '1px dashed var(--border-color)',
+                textAlign: 'center',
+                color: 'var(--color-text-muted)',
+                fontSize: '0.74rem'
+              }}
+            >
+              Nenhum alerta agendado. Clique no botão de agenda de qualquer jogo para receber notificação no celular!
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+              {reminders
+                .filter(r => !r.notified)
+                .map((rem) => {
+                  const matchDate = new Date(rem.matchTime);
+                  const dateStr = matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                  const timeStr = matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+                  return (
+                    <div
+                      key={rem.fixtureId}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        background: 'rgba(255,255,255,0.03)',
+                        border: '1px solid var(--border-color)',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#fff' }}>
+                          ⚽ {rem.homeTeam} x {rem.awayTeam}
+                        </span>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)' }}>
+                          {rem.leagueName} • {dateStr} às {timeStr} (Aviso {rem.minutesBefore}m antes)
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => notificationService.cancelReminder(rem.fixtureId)}
+                        title="Remover alerta"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--color-text-muted)',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       </div>
 

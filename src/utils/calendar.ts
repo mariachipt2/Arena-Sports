@@ -15,7 +15,13 @@ const sanitizeFilename = (text: string): string => {
 };
 
 export const calendarUtils = {
-  // Gera link web oficial para adicionar evento ao Google Agenda
+  // Detecta se o usuário está acessando por celular/tablet
+  isMobile(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    return /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  },
+
+  // Gera link web oficial para adicionar evento ao Google Agenda com detalhes e instruções de alarme
   generateGoogleCalendarUrl(match: ApiFixture): string {
     const { fixture, league, teams } = match;
     const startDate = new Date(fixture.date);
@@ -25,16 +31,23 @@ export const calendarUtils = {
     const startUTC = formatToUTCString(startDate);
     const endUTC = formatToUTCString(endDate);
 
+    const timeFormatted = startDate.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo'
+    });
+
     const title = `⚽ ${teams.home.name} x ${teams.away.name} - ${league.name}`;
     
     const details = [
-      `Partida: ${teams.home.name} x ${teams.away.name}`,
-      `Competição: ${league.name}${league.round ? ` • ${league.round}` : ''}`,
-      `Temporada: ${league.season}`,
-      `País: ${league.country}`,
-      fixture.referee ? `Árbitro: ${fixture.referee}` : '',
+      `🏆 Partida: ${teams.home.name} x ${teams.away.name}`,
+      `🏟️ Campeonato: ${league.name}${league.round ? ` • ${league.round}` : ''}`,
+      `⏰ Horário de Brasília: ${timeFormatted} (Data: ${startDate.toLocaleDateString('pt-BR')})`,
+      fixture.referee ? `👤 Árbitro: ${fixture.referee}` : '',
       '',
-      'Acompanhe placar ao vivo, lances e estatísticas em tempo real no Arena Scores!'
+      '🔔 LEMBRETE NO CELULAR: Certifique-se de manter o alerta ativado no Google Agenda (15 min antes) para ser avisado no smartphone!',
+      '',
+      '📲 Acompanhe placar ao vivo, lances, estatísticas e vídeos no Arena Scores!'
     ].filter(Boolean).join('\n');
 
     const location = `${league.name}, ${league.country}`;
@@ -50,14 +63,14 @@ export const calendarUtils = {
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   },
 
-  // Abre diretamente o Google Agenda em nova aba
+  // Abre o Google Agenda diretamente (em nova aba ou no app)
   openGoogleCalendar(match: ApiFixture): void {
     const url = this.generateGoogleCalendarUrl(match);
     window.open(url, '_blank', 'noopener,noreferrer');
   },
 
-  // Gera e faz o download de um arquivo .ics (padrão iCalendar para Apple Calendar, Outlook e outros)
-  downloadIcsFile(match: ApiFixture): void {
+  // Gera conteúdo .ics padrão RFC 5545 com múltiplos alarmes (VALARM) de 15m, 30m e início
+  buildIcsContent(match: ApiFixture): string {
     const { fixture, league, teams } = match;
     const startDate = new Date(fixture.date);
     const endDate = new Date(startDate.getTime() + 120 * 60 * 1000);
@@ -67,17 +80,18 @@ export const calendarUtils = {
     const endUTC = formatToUTCString(endDate);
 
     const summary = `⚽ ${teams.home.name} x ${teams.away.name} (${league.name})`;
-    const description = `Partida: ${teams.home.name} x ${teams.away.name}\\nCampeonato: ${league.name}${league.round ? ` - ${league.round}` : ''}\\nAcompanhe em tempo real pelo Arena Scores!`;
+    const description = `Partida: ${teams.home.name} x ${teams.away.name}\\nCampeonato: ${league.name}${league.round ? ` - ${league.round}` : ''}\\n\\nAcompanhe o placar ao vivo e estatísticas no Arena Scores!`;
     const location = `${league.name}\\, ${league.country}`;
-    const uid = `arena-fixture-${fixture.id}-${startDate.getTime()}@arenascores.com`;
+    const uid = `arena-match-${fixture.id}-${startDate.getTime()}@arenascores.com`;
 
-    // Conteúdo em formato padrão RFC 5545 com alarme de 15 minutos antes do jogo
-    const icsContent = [
+    return [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//Arena Scores//Futebol em Tempo Real//PT-BR',
+      'PRODID:-//Arena Scores//Futebol em Tempo Real e Notificacoes//PT-BR',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
+      'X-WR-CALNAME:Arena Scores - Futebol ao Vivo',
+      'X-WR-TIMEZONE:America/Sao_Paulo',
       'BEGIN:VEVENT',
       `UID:${uid}`,
       `DTSTAMP:${nowUTC}`,
@@ -87,19 +101,38 @@ export const calendarUtils = {
       `DESCRIPTION:${description}`,
       `LOCATION:${location}`,
       'STATUS:CONFIRMED',
+      // Alarme 1: 15 minutos antes do início (com som e notificação no celular)
       'BEGIN:VALARM',
       'TRIGGER:-PT15M',
       'ACTION:DISPLAY',
-      `DESCRIPTION:O jogo ${teams.home.name} x ${teams.away.name} vai começar em 15 minutos!`,
+      `DESCRIPTION:⚽ ${teams.home.name} x ${teams.away.name} vai começar em 15 minutos!`,
+      'X-WR-ALARMUID:alarm-15m-start',
+      'END:VALARM',
+      // Alarme 2: 30 minutos antes do início
+      'BEGIN:VALARM',
+      'TRIGGER:-PT30M',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:⚽ Faltam 30 minutos para ${teams.home.name} x ${teams.away.name} (${league.name})`,
+      'X-WR-ALARMUID:alarm-30m-start',
+      'END:VALARM',
+      // Alarme 3: Na hora exata do pontapé inicial
+      'BEGIN:VALARM',
+      'TRIGGER:PT0S',
+      'ACTION:DISPLAY',
+      `DESCRIPTION:⚽ BOLA ROLANDO: ${teams.home.name} x ${teams.away.name} acabou de começar!`,
+      'X-WR-ALARMUID:alarm-0m-start',
       'END:VALARM',
       'END:VEVENT',
       'END:VCALENDAR'
     ].join('\r\n');
+  },
 
+  // Faz o download do arquivo .ics formatado para acionar o calendário do celular (Google Agenda / Apple / Samsung)
+  downloadIcsFile(match: ApiFixture): void {
+    const icsContent = this.buildIcsContent(match);
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const filename = `jogo-${sanitizeFilename(teams.home.name)}-vs-${sanitizeFilename(teams.away.name)}.ics`;
+    const filename = `jogo-${sanitizeFilename(match.teams.home.name)}-vs-${sanitizeFilename(match.teams.away.name)}.ics`;
 
-    // Dispara download via âncora temporária
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
     link.setAttribute('download', filename);
@@ -107,5 +140,11 @@ export const calendarUtils = {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(link.href);
+  },
+
+  // Sincroniza diretamente no celular (Android / iOS / Desktop)
+  syncMobileCalendar(match: ApiFixture): void {
+    // Baixa o arquivo .ics que celulares Android e iOS reconhecem e abrem direto no app do Google Agenda ou Calendário nativo
+    this.downloadIcsFile(match);
   }
 };
