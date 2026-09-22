@@ -5,7 +5,27 @@ interface CacheEntry<T> {
   expiry: number; // Timestamp
 }
 
-const envKey = (import.meta.env.VITE_API_FOOTBALL_KEY as string) || '00ca436abbe4b9cc78f6a4c20972b518';
+const envKey = (import.meta.env.VITE_API_FOOTBALL_KEY as string) || '569319a5928dc79a97a43d90785a0558';
+
+const CACHE_VERSION = 'v3';
+
+// Limpeza automática de caches legados ou inválidos ao carregar o app
+try {
+  if (typeof localStorage !== 'undefined') {
+    const currentVer = localStorage.getItem('arena_cache_ver');
+    if (currentVer !== CACHE_VERSION) {
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('arena_cache_')) {
+          localStorage.removeItem(k);
+        }
+      }
+      localStorage.setItem('arena_cache_ver', CACHE_VERSION);
+    }
+  }
+} catch (e) {
+  console.warn('Erro ao verificar versão do cache:', e);
+}
 
 const DEFAULT_PREFS: Preferences = {
   apiKey: envKey || '',
@@ -21,7 +41,7 @@ export const storageService = {
         data,
         expiry: Date.now() + durationMinutes * 60 * 1000,
       };
-      localStorage.setItem(`arena_cache_${key}`, JSON.stringify(entry));
+      localStorage.setItem(`arena_cache_${CACHE_VERSION}_${key}`, JSON.stringify(entry));
     } catch (e) {
       console.warn('Erro ao salvar no localStorage cache:', e);
     }
@@ -29,12 +49,12 @@ export const storageService = {
 
   getCache<T>(key: string): T | null {
     try {
-      const item = localStorage.getItem(`arena_cache_${key}`);
+      const item = localStorage.getItem(`arena_cache_${CACHE_VERSION}_${key}`);
       if (!item) return null;
 
       const entry: CacheEntry<T> = JSON.parse(item);
       if (Date.now() > entry.expiry) {
-        localStorage.removeItem(`arena_cache_${key}`);
+        localStorage.removeItem(`arena_cache_${CACHE_VERSION}_${key}`);
         return null;
       }
       return entry.data;

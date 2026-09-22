@@ -1,6 +1,5 @@
 import type { ApiFixture, MatchLineup, MatchStatistics, StandingItem } from '../types/api';
 import type { QuotaInfo } from '../types/dashboard';
-import { mockDataService } from './mockData';
 import { storageService } from './storage';
 
 const API_HOST = 'v3.football.api-sports.io';
@@ -139,16 +138,10 @@ export const apiFootballService = {
       if (apiMatches && apiMatches.length > 0) {
         return apiMatches;
       }
-      return [
-        ...mockDataService.getFinishedMatches(),
-        ...mockDataService.getUpcomingMatches()
-      ];
+      return [];
     } catch (e) {
-      console.warn('Usando dados de fallback para jogos do dia devido a:', e instanceof Error ? e.message : e);
-      return [
-        ...mockDataService.getFinishedMatches(),
-        ...mockDataService.getUpcomingMatches()
-      ];
+      console.warn('Erro ao buscar jogos do dia da API:', e instanceof Error ? e.message : e);
+      return [];
     }
   },
 
@@ -178,8 +171,11 @@ export const apiFootballService = {
         statistics: statistics || []
       };
     } catch (e) {
-      console.warn(`Usando simulação para detalhes do jogo ${fixtureId} devido a:`, e instanceof Error ? e.message : e);
-      return mockDataService.getMatchDetails(fixtureId);
+      console.warn(`Não foi possível carregar detalhes da partida ${fixtureId}:`, e instanceof Error ? e.message : e);
+      return {
+        lineups: [],
+        statistics: []
+      };
     }
   },
 

@@ -33,7 +33,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
       return (
         <span className="match-status-pill status-live">
           <span className="badge-live-pulse animate-pulse-live"></span>
-          {fixture.status.short === 'HT' ? 'Intervalo (HT)' : `${fixture.status.elapsed}'`}
+          {(() => {
+            if (fixture.status.short === 'HT') return 'Intervalo (HT)';
+            if (fixture.status.short === 'P') return 'Pênaltis';
+            if (fixture.status.short === 'ET') return `Prorrog. ${fixture.status.elapsed ?? 90}'`;
+            if (fixture.status.short === 'BT') return 'Prorrogação';
+            if (fixture.status.elapsed != null) return `${fixture.status.elapsed}'`;
+            return fixture.status.short || 'Ao Vivo';
+          })()}
         </span>
       );
     }
