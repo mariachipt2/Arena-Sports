@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ApiFixture } from '../types/api';
 import { apiFootballService } from '../services/apiFootball';
-import { updateSimulation } from '../services/mockData';
 import { storageService } from '../services/storage';
 
 interface GoalEvent {
@@ -25,11 +24,6 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
   // Carrega apenas partidas ao vivo no polling periódico
   const pollLiveMatches = useCallback(async () => {
     try {
-      const prefs = storageService.getPreferences();
-      if (prefs.useSimulation) {
-        updateSimulation();
-      }
-
       const liveData = await apiFootballService.getLiveMatches();
       setLiveMatches(liveData);
       setLastUpdated(new Date());
@@ -78,11 +72,6 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
   // Carrega todos os dados (diários + ao vivo)
   const fetchAllMatches = useCallback(async () => {
     try {
-      const prefs = storageService.getPreferences();
-      if (prefs.useSimulation) {
-        updateSimulation();
-      }
-
       const [liveData, dailyData] = await Promise.all([
         apiFootballService.getLiveMatches(),
         apiFootballService.getDailyMatches()
@@ -94,10 +83,8 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
       setError(null);
       previousLiveMatchesRef.current = liveData;
 
-      // Sincroniza status oficial da cota caso esteja usando a API Real
-      if (!prefs.useSimulation) {
-        apiFootballService.syncQuotaStatus();
-      }
+      // Sincroniza status oficial da cota com a API
+      apiFootballService.syncQuotaStatus();
     } catch (err) {
       console.error('Erro ao buscar partidas:', err);
       setError('Erro ao atualizar dados esportivos.');
@@ -113,10 +100,7 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
     const handleVisibilityChange = () => {
       isTabVisibleRef.current = document.visibilityState === 'visible';
       if (isTabVisibleRef.current) {
-        const prefs = storageService.getPreferences();
-        if (prefs.useSimulation) {
-          pollLiveMatches();
-        } else if (previousLiveMatchesRef.current.length > 0) {
+        if (previousLiveMatchesRef.current.length > 0) {
           console.log('[Visibility API] Aba ativa com jogos ao vivo. Atualizando placares...');
           pollLiveMatches();
         } else {
@@ -142,35 +126,20 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
     };
   }, [fetchAllMatches, pollLiveMatches]);
 
-  // Efeito de Polling inteligente e econômico
+  // Efeito de Polling inteligente e econômico da API Real
   useEffect(() => {
-    const prefs = storageService.getPreferences();
-
-    // 1. Modo Simulação: atualiza a cada 5 segundos para testes rápidos e fluidos de design
-    if (prefs.useSimulation) {
-      const intervalId = setInterval(() => {
-        if (isTabVisibleRef.current) {
-          pollLiveMatches();
-        }
-      }, 5000);
-      return () => clearInterval(intervalId);
-    }
-
-    // 2. Modo Real (API-Football):
-    // Se NÃO houver partidas ao vivo acontecendo no momento, PAUSA o polling completamente!
+    // Se NÃO houver partidas ao vivo acontecendo no momento, PAUSA o polling para poupar cota
     const hasLiveMatches = liveMatches.length > 0;
     if (!hasLiveMatches) {
-      console.log('[Polling Pausado] Nenhuma partida ao vivo no momento. Polling suspenso para poupar cota da API.');
       return;
     }
 
-    // Se houver partidas ao vivo, consulta em intervalo ampliado (3 minutos = 180.000 ms) para proteger a cota
-    console.log('[Polling Ativo] Partidas ao vivo em andamento. Consultando a cada 3 minutos...');
+    // Se houver partidas ao vivo, consulta em intervalo seguro (2 minutos)
     const intervalId = setInterval(() => {
       if (isTabVisibleRef.current) {
         pollLiveMatches();
       }
-    }, 180000); // 3 minutos
+    }, 120000); // 2 minutos
 
     return () => clearInterval(intervalId);
   }, [pollLiveMatches, liveMatches.length]);

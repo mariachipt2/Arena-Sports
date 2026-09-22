@@ -10,7 +10,7 @@ const envKey = (import.meta.env.VITE_API_FOOTBALL_KEY as string) || '00ca436abbe
 const DEFAULT_PREFS: Preferences = {
   apiKey: envKey || '',
   selectedLeagues: [71, 73, 2, 39, 140], // Brasileirão Série A, Copa do Brasil, Champions, Premier League, La Liga
-  useSimulation: true, // Modo Simulação Interativa autônomo (100% dos jogos, escalações e lances ativos)
+  useSimulation: false, // Modo Oficial em Tempo Real (API Oficial)
 };
 
 export const storageService = {
@@ -38,7 +38,7 @@ export const storageService = {
         return null;
       }
       return entry.data;
-    } catch (e) {
+    } catch {
       return null;
     }
   },
@@ -47,33 +47,40 @@ export const storageService = {
   getPreferences(): Preferences {
     try {
       const prefs = localStorage.getItem('arena_preferences');
-      if (!prefs) return DEFAULT_PREFS;
+      if (!prefs) {
+        localStorage.setItem('arena_preferences', JSON.stringify(DEFAULT_PREFS));
+        return DEFAULT_PREFS;
+      }
       const parsed = JSON.parse(prefs);
       
-      const finalApiKey = parsed.apiKey || envKey;
-      return {
+      // Força permanentemente o modo de dados reais e a chave API interna
+      const result: Preferences = {
         ...DEFAULT_PREFS,
         ...parsed,
-        apiKey: finalApiKey,
-        useSimulation: parsed.useSimulation ?? true
+        apiKey: envKey,
+        useSimulation: false
       };
-    } catch (e) {
+
+      // Se o iPhone ou navegador tiver guardado useSimulation: true, limpa e corrige imediatamente
+      if (parsed.useSimulation !== false || parsed.apiKey !== envKey) {
+        localStorage.setItem('arena_preferences', JSON.stringify(result));
+        this.clearCache();
+      }
+
+      return result;
+    } catch {
       return DEFAULT_PREFS;
     }
   },
 
   savePreferences(prefs: Preferences): void {
     try {
-      const oldPrefs = this.getPreferences();
-      const changedMode = oldPrefs.useSimulation !== prefs.useSimulation;
-      const changedKey = oldPrefs.apiKey !== prefs.apiKey;
-
-      localStorage.setItem('arena_preferences', JSON.stringify(prefs));
-
-      if (changedMode || changedKey) {
-        console.log('[Cache] Limpando cache local de partidas devido a mudança de configurações...');
-        this.clearCache();
-      }
+      const sanitizedPrefs: Preferences = {
+        ...prefs,
+        apiKey: envKey,
+        useSimulation: false
+      };
+      localStorage.setItem('arena_preferences', JSON.stringify(sanitizedPrefs));
     } catch (e) {
       console.error('Erro ao salvar preferências:', e);
     }

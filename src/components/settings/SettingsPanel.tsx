@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, Sparkles, Database, Key, Info, ShieldCheck, Palette, RotateCcw, Bell, Smartphone, Trash2 } from 'lucide-react';
+import { Save, Check, Sparkles, Database, Info, Palette, RotateCcw, Bell, Smartphone, Trash2 } from 'lucide-react';
 import { storageService } from '../../services/storage';
 import { notificationService, type ScheduledReminder } from '../../services/notificationService';
 import { useQuotaMonitor } from '../../hooks/useQuotaMonitor';
@@ -83,132 +83,41 @@ export const SettingsPanel: React.FC = () => {
           Configurações do Painel
         </h2>
         <p style={{ fontSize: '0.8rem', color: 'var(--color-text-muted)', marginTop: '4px' }}>
-          Gerencie a fonte de dados, modo de simulação e economia de cota diária.
+          Gerencie ligas prioritárias, temas de equipes e notificações no seu smartphone.
         </p>
       </div>
 
-      {/* Seção - Modo de Funcionamento */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fff' }}>Fonte de Dados</h3>
-          <span style={{ fontSize: '0.72rem', color: quotaColor, fontWeight: '700' }}>
-            API: {percentUsed}% usado ({remaining}/{limit} disponíveis)
+      {/* Card de Consumo da Cota da API Oficial */}
+      <div style={{
+        backgroundColor: 'rgba(255,255,255,0.02)',
+        border: '1px solid var(--border-color)',
+        borderRadius: '12px',
+        padding: '14px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
+          <span style={{ fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Database size={15} style={{ color: quotaColor }} />
+            Cota Diária da API Oficial
+          </span>
+          <span style={{ fontWeight: '700', color: quotaColor }}>
+            {percentUsed}% ({used} gastas / {remaining} restantes)
           </span>
         </div>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <button
-            onClick={() => setPrefs(prev => ({ ...prev, useSimulation: true }))}
-            style={{
-              padding: '14px',
-              borderRadius: '12px',
-              border: prefs.useSimulation ? '1px solid var(--color-success-mint)' : '1px solid var(--border-color)',
-              background: prefs.useSimulation ? 'rgba(46, 213, 115, 0.1)' : 'rgba(255,255,255,0.02)',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: '6px',
-              textAlign: 'left'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Sparkles size={16} style={{ color: 'var(--color-success-mint)' }} />
-                <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#fff' }}>Modo Simulação</span>
-              </div>
-              <span style={{ fontSize: '0.62rem', background: 'rgba(46, 213, 115, 0.2)', color: 'var(--color-success-mint)', padding: '2px 6px', borderRadius: '4px', fontWeight: '800' }}>
-                0 REQUISIÇÕES
-              </span>
-            </div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', lineHeight: '1.4' }}>
-              <strong>Ideal para testar design e layout!</strong> Não gasta cota da API, com placares dinâmicos e gols animados.
-            </span>
-          </button>
 
-          <button
-            onClick={() => setPrefs(prev => ({ ...prev, useSimulation: false }))}
-            style={{
-              padding: '14px',
-              borderRadius: '12px',
-              border: !prefs.useSimulation ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-              background: !prefs.useSimulation ? 'rgba(157, 124, 252, 0.12)' : 'rgba(255,255,255,0.02)',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'flex-start',
-              gap: '6px',
-              textAlign: 'left'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Database size={16} style={{ color: 'var(--color-primary)' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#fff' }}>API Real (API-Football)</span>
-            </div>
-            <span style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', lineHeight: '1.4' }}>
-              Consome dados oficiais e reais da API-Sports com economia inteligente de consultas.
-            </span>
-          </button>
+        {/* Barra de Progresso */}
+        <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '999px', overflow: 'hidden' }}>
+          <div style={{ width: `${percentUsed}%`, height: '100%', backgroundColor: quotaColor, transition: 'width 0.3s ease' }} />
         </div>
 
-        {/* Card de Economia e Cota da API */}
-        <div style={{
-          backgroundColor: 'rgba(255,255,255,0.02)',
-          border: '1px solid var(--border-color)',
-          borderRadius: '10px',
-          padding: '12px 14px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem' }}>
-            <span style={{ fontWeight: '600', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ShieldCheck size={14} style={{ color: quotaColor }} />
-              Consumo da Cota Diária ({limit} req/dia)
-            </span>
-            <span style={{ fontWeight: '700', color: quotaColor }}>
-              {percentUsed}% ({used} gastas / {remaining} restantes)
-            </span>
-          </div>
-
-          {/* Barra de Progresso */}
-          <div style={{ width: '100%', height: '6px', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '999px', overflow: 'hidden' }}>
-            <div style={{ width: `${percentUsed}%`, height: '100%', backgroundColor: quotaColor, transition: 'width 0.3s ease' }} />
-          </div>
-
-          <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', lineHeight: '1.4', marginTop: '2px' }}>
-            <Info size={13} style={{ flexShrink: 0, opacity: 0.7 }} />
-            <span>
-              O sistema pausa as consultas se não houver jogos ao vivo e consulta a cada 3 minutos quando houver partidas. Reseta todo dia às 21:00 BRT.
-            </span>
-          </div>
+        <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px', lineHeight: '1.4' }}>
+          <Info size={13} style={{ flexShrink: 0, opacity: 0.7 }} />
+          <span>
+            Conexão direta com a API oficial em tempo real. A cota é atualizada e reiniciada diariamente às 21:00 BRT.
+          </span>
         </div>
-
-        {/* Chave de API */}
-        {!prefs.useSimulation && (
-          <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Key size={13} />
-              Chave API-Football (v3)
-            </label>
-            <input
-              type="text"
-              value={prefs.apiKey}
-              onChange={(e) => setPrefs(prev => ({ ...prev, apiKey: e.target.value }))}
-              placeholder="Insira sua chave de API..."
-              style={{
-                width: '100%',
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                padding: '10px 14px',
-                color: '#fff',
-                fontSize: '0.82rem',
-                outline: 'none'
-              }}
-            />
-          </div>
-        )}
       </div>
 
       <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)' }} />

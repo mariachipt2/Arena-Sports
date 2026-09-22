@@ -36,7 +36,7 @@ export const apiFootballService = {
   // Sincroniza a cota oficial a partir do endpoint /status da API-Football
   async syncQuotaStatus(): Promise<void> {
     const prefs = storageService.getPreferences();
-    if (prefs.useSimulation || !prefs.apiKey) return;
+    if (!prefs.apiKey) return;
 
     try {
       const response = await fetch(`${API_URL}/status`, {
@@ -66,9 +66,8 @@ export const apiFootballService = {
   async fetchFromApi<T>(endpoint: string, cacheKey: string, cacheDurationMinutes: number): Promise<T> {
     const prefs = storageService.getPreferences();
 
-    // Se estiver em modo de simulação ou sem chave de API, lança erro para acionar o fallback do mock
-    if (prefs.useSimulation || !prefs.apiKey) {
-      throw new Error('SimulationMode');
+    if (!prefs.apiKey) {
+      throw new Error('NoApiKey');
     }
 
     // 1. Tenta recuperar do cache local
@@ -118,33 +117,20 @@ export const apiFootballService = {
 
   // --- OBTENÇÃO DE PARTIDAS AO VIVO ---
   async getLiveMatches(): Promise<ApiFixture[]> {
-    const prefs = storageService.getPreferences();
-    if (prefs.useSimulation) {
-      return mockDataService.getLiveMatches();
-    }
-    
     try {
       const apiMatches = await this.fetchFromApi<ApiFixture[]>('fixtures?live=all', 'live_matches', 1);
       if (apiMatches && apiMatches.length > 0) {
         return apiMatches;
       }
-      return mockDataService.getLiveMatches();
+      return [];
     } catch (e) {
-      console.warn('Usando dados de fallback para jogos ao vivo devido a:', e instanceof Error ? e.message : e);
-      return mockDataService.getLiveMatches();
+      console.warn('Erro ao buscar jogos ao vivo da API:', e instanceof Error ? e.message : e);
+      return [];
     }
   },
 
   // --- OBTENÇÃO DE PARTIDAS DO DIA (PRÓXIMAS E ENCERRADAS) ---
   async getDailyMatches(): Promise<ApiFixture[]> {
-    const prefs = storageService.getPreferences();
-    if (prefs.useSimulation) {
-      return [
-        ...mockDataService.getFinishedMatches(),
-        ...mockDataService.getUpcomingMatches()
-      ];
-    }
-
     const today = getTodayDateString();
     try {
       // Endpoint da API: fixtures?date=YYYY-MM-DD com CACHE DE 24 HORAS (1440 min)
@@ -199,11 +185,6 @@ export const apiFootballService = {
 
   // --- OBTENÇÃO DE CLASSIFICAÇÃO / TABELA DA LIGA ---
   async getLeagueStandings(leagueId: number, season: number = 2026): Promise<StandingItem[]> {
-    const prefs = storageService.getPreferences();
-    if (prefs.useSimulation) {
-      return mockDataService.getStandings(leagueId);
-    }
-
     try {
       // Cache de 24 horas (1440 min) para a tabela da liga
       const response = await this.fetchFromApi<any[]>(
@@ -219,10 +200,10 @@ export const apiFootballService = {
           return flatStandings;
         }
       }
-      return mockDataService.getStandings(leagueId);
+      return [];
     } catch (e) {
-      console.warn(`Usando simulação para classificação da liga ${leagueId} devido a:`, e instanceof Error ? e.message : e);
-      return mockDataService.getStandings(leagueId);
+      console.warn(`Erro ao buscar classificação da liga ${leagueId}:`, e instanceof Error ? e.message : e);
+      return [];
     }
   }
 };
