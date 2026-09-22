@@ -1,26 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import { X, Activity, Users, BarChart2, Calendar, Star } from 'lucide-react';
-import type { ApiFixture, MatchLineup, MatchStatistics } from '../../types/api';
+import { X, Activity, Users, BarChart2, Calendar, Star, Trophy, Palette } from 'lucide-react';
+import type { ApiFixture, MatchLineup, MatchStatistics, StandingItem } from '../../types/api';
 import { apiFootballService } from '../../services/apiFootball';
 import { TeamBadge } from '../common/TeamBadge';
 import { ScoreBadge } from '../common/ScoreBadge';
+import { CalendarButton } from '../common/CalendarButton';
 import { MatchTimeline } from './MatchTimeline';
 import { PitchLineup } from './PitchLineup';
 import { StatsComparison } from './StatsComparison';
+import { StandingsTable } from './StandingsTable';
 import { useFavorites } from '../../hooks/useFavorites';
+import { useTeamTheme } from '../../hooks/useTeamTheme';
 
 interface MatchDetailsSheetProps {
   match: ApiFixture | null;
   onClose: () => void;
 }
 
-type DetailTab = 'timeline' | 'lineups' | 'stats';
+type DetailTab = 'timeline' | 'lineups' | 'stats' | 'standings';
 
 export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onClose }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { selectThemeByTeam } = useTeamTheme();
   const [activeTab, setActiveTab] = useState<DetailTab>('timeline');
   const [lineups, setLineups] = useState<MatchLineup[]>([]);
   const [stats, setStats] = useState<MatchStatistics[]>([]);
+  const [standings, setStandings] = useState<StandingItem[]>([]);
+  const [themeFeedback, setThemeFeedback] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +36,7 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
     // Reset de estado ao abrir um novo jogo
     setLineups([]);
     setStats([]);
+    setStandings([]);
     setActiveTab('timeline');
     setError(null);
 
@@ -37,9 +44,13 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
     const loadDetails = async () => {
       setLoading(true);
       try {
-        const details = await apiFootballService.getMatchDetails(match.fixture.id);
+        const [details, leagueStandings] = await Promise.all([
+          apiFootballService.getMatchDetails(match.fixture.id),
+          apiFootballService.getLeagueStandings(match.league.id, match.league.season)
+        ]);
         setLineups(details.lineups);
         setStats(details.statistics);
+        setStandings(leagueStandings);
       } catch (err) {
         console.error('Erro ao buscar detalhes da partida:', err);
         setError('Não foi possível carregar os detalhes desta partida.');
@@ -123,14 +134,40 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
               display: 'flex', 
               alignItems: 'center', 
               justifyContent: 'center', 
-              gap: '4px',
-              marginTop: '4px'
+              gap: '8px',
+              marginTop: '6px',
+              flexWrap: 'wrap'
             }}
           >
-            <Calendar size={12} />
-            <span>{formattedDate} às {formattedTime}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Calendar size={12} />
+              <span>{formattedDate} às {formattedTime}</span>
+            </div>
+            <span>•</span>
+            <CalendarButton match={match} variant="full" />
           </div>
         </div>
+
+        {/* Feedback visual de tema ativado */}
+        {themeFeedback && (
+          <div 
+            style={{ 
+              textAlign: 'center', 
+              margin: '-6px 0 10px 0', 
+              fontSize: '0.72rem', 
+              color: 'var(--color-primary)', 
+              fontWeight: '700',
+              background: 'var(--color-primary-glow)',
+              padding: '4px 10px',
+              borderRadius: '999px',
+              display: 'inline-flex',
+              alignSelf: 'center',
+              boxShadow: '0 0 12px var(--border-color-glow)'
+            }}
+          >
+            ✨ {themeFeedback}
+          </div>
+        )}
 
         {/* Painel de Placar Central */}
         <div 
@@ -149,6 +186,36 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
             <span style={{ fontSize: '0.9rem', fontWeight: '700', color: homeWinner ? '#fff' : 'var(--color-text-main)' }}>
               {teams.home.name}
             </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const ok = selectThemeByTeam(teams.home.id || teams.home.name);
+                if (ok) {
+                  setThemeFeedback(`Tema ${teams.home.name} ativado!`);
+                  setTimeout(() => setThemeFeedback(null), 2500);
+                }
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '6px',
+                padding: '2px 8px',
+                fontSize: '0.65rem',
+                fontWeight: '700',
+                color: 'var(--color-text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginTop: '2px',
+                transition: 'all 0.15s'
+              }}
+              title={`Mudar visual do app para as cores do ${teams.home.name}`}
+              className="team-theme-btn"
+            >
+              <Palette size={11} />
+              <span>Tema</span>
+            </button>
           </div>
 
           {/* Placar / Tempo */}
@@ -206,6 +273,36 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
             <span style={{ fontSize: '0.9rem', fontWeight: '700', color: awayWinner ? '#fff' : 'var(--color-text-main)' }}>
               {teams.away.name}
             </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const ok = selectThemeByTeam(teams.away.id || teams.away.name);
+                if (ok) {
+                  setThemeFeedback(`Tema ${teams.away.name} ativado!`);
+                  setTimeout(() => setThemeFeedback(null), 2500);
+                }
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '6px',
+                padding: '2px 8px',
+                fontSize: '0.65rem',
+                fontWeight: '700',
+                color: 'var(--color-text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                marginTop: '2px',
+                transition: 'all 0.15s'
+              }}
+              title={`Mudar visual do app para as cores do ${teams.away.name}`}
+              className="team-theme-btn"
+            >
+              <Palette size={11} />
+              <span>Tema</span>
+            </button>
           </div>
         </div>
 
@@ -301,6 +398,30 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
             <BarChart2 size={14} />
             <span>Estatísticas</span>
           </button>
+
+          {/* Aba: Classificação na Tabela */}
+          <button
+            onClick={() => setActiveTab('standings')}
+            style={{
+              flex: 1,
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'standings' ? '2px solid var(--color-primary)' : '2px solid transparent',
+              color: activeTab === 'standings' ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              padding: '10px 0',
+              fontWeight: '700',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Trophy size={14} />
+            <span>Classificação</span>
+          </button>
         </div>
 
         {/* Área de Conteúdo da Aba */}
@@ -309,7 +430,7 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
             <div 
               style={{ 
                 display: 'flex', 
-                flexDirection: 'column',
+                flexDirection: 'column', 
                 alignItems: 'center', 
                 justifyContent: 'center', 
                 height: '180px',
@@ -327,7 +448,7 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
                   animation: 'spin 0.8s linear infinite'
                 }}
               ></div>
-              <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>Carregando dados táticos...</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: '600' }}>Carregando dados táticos e tabela...</span>
             </div>
           ) : error ? (
             <div style={{ textAlign: 'center', color: 'var(--color-danger)', padding: '30px 10px', fontSize: '0.85rem' }}>
@@ -351,6 +472,15 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
                   statistics={stats} 
                   homeTeamName={teams.home.name} 
                   awayTeamName={teams.away.name} 
+                />
+              )}
+
+              {activeTab === 'standings' && (
+                <StandingsTable 
+                  standings={standings} 
+                  homeTeamId={teams.home.id} 
+                  awayTeamId={teams.away.id} 
+                  leagueName={league.name} 
                 />
               )}
             </>

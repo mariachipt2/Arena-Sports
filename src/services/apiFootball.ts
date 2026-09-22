@@ -1,4 +1,4 @@
-import type { ApiFixture, MatchLineup, MatchStatistics } from '../types/api';
+import type { ApiFixture, MatchLineup, MatchStatistics, StandingItem } from '../types/api';
 import type { QuotaInfo } from '../types/dashboard';
 import { mockDataService } from './mockData';
 import { storageService } from './storage';
@@ -195,5 +195,35 @@ export const apiFootballService = {
       console.warn(`Usando simulação para detalhes do jogo ${fixtureId} devido a:`, e instanceof Error ? e.message : e);
       return mockDataService.getMatchDetails(fixtureId);
     }
+  },
+
+  // --- OBTENÇÃO DE CLASSIFICAÇÃO / TABELA DA LIGA ---
+  async getLeagueStandings(leagueId: number, season: number = 2026): Promise<StandingItem[]> {
+    const prefs = storageService.getPreferences();
+    if (prefs.useSimulation) {
+      return mockDataService.getStandings(leagueId);
+    }
+
+    try {
+      // Cache de 24 horas (1440 min) para a tabela da liga
+      const response = await this.fetchFromApi<any[]>(
+        `standings?league=${leagueId}&season=${season}`,
+        `standings_${leagueId}_${season}`,
+        1440
+      );
+
+      if (response && response.length > 0 && response[0]?.league?.standings) {
+        // A API-Football retorna standings como array de grupos
+        const flatStandings = response[0].league.standings.flat() as StandingItem[];
+        if (flatStandings.length > 0) {
+          return flatStandings;
+        }
+      }
+      return mockDataService.getStandings(leagueId);
+    } catch (e) {
+      console.warn(`Usando simulação para classificação da liga ${leagueId} devido a:`, e instanceof Error ? e.message : e);
+      return mockDataService.getStandings(leagueId);
+    }
   }
 };
+

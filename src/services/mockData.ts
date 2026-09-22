@@ -1,4 +1,4 @@
-import type { ApiFixture, MatchLineup, MatchStatistics } from '../types/api';
+import type { ApiFixture, MatchLineup, MatchStatistics, StandingItem } from '../types/api';
 
 // Armazena as partidas ao vivo simuladas em memória para manter o estado persistente durante a sessão
 let simulatedLiveMatches: ApiFixture[] = [];
@@ -654,5 +654,397 @@ export const mockDataService = {
     ];
 
     return { lineups, statistics };
+  },
+
+  // --- OBTENÇÃO DE CLASSIFICAÇÃO / TABELA DA LIGA ---
+  getStandings(leagueId: number): StandingItem[] {
+    // 1. Brasileirão Série A (ID 71)
+    if (leagueId === 71) {
+      return [
+        {
+          rank: 1,
+          team: { id: 121, name: "Palmeiras", logo: "https://media.api-sports.io/football/teams/121.png" },
+          points: 65,
+          goalsDiff: 28,
+          group: "Brasileirão Série A",
+          form: "V,V,E,V,V",
+          status: "same",
+          description: "Fase de Grupos - Copa Libertadores",
+          all: { played: 30, win: 20, draw: 5, lose: 5, goals: { for: 56, against: 28 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 2,
+          team: { id: 120, name: "Botafogo", logo: "https://media.api-sports.io/football/teams/120.png" },
+          points: 63,
+          goalsDiff: 24,
+          group: "Brasileirão Série A",
+          form: "E,V,V,D,V",
+          status: "same",
+          description: "Fase de Grupos - Copa Libertadores",
+          all: { played: 30, win: 19, draw: 6, lose: 5, goals: { for: 52, against: 28 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 3,
+          team: { id: 127, name: "Flamengo", logo: "https://media.api-sports.io/football/teams/127.png" },
+          points: 60,
+          goalsDiff: 22,
+          group: "Brasileirão Série A",
+          form: "V,D,V,V,E",
+          status: "same",
+          description: "Fase de Grupos - Copa Libertadores",
+          all: { played: 30, win: 18, draw: 6, lose: 6, goals: { for: 55, against: 33 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 4,
+          team: { id: 154, name: "Fortaleza", logo: "https://media.api-sports.io/football/teams/154.png" },
+          points: 58,
+          goalsDiff: 16,
+          group: "Brasileirão Série A",
+          form: "V,E,D,V,V",
+          status: "same",
+          description: "Fase de Grupos - Copa Libertadores",
+          all: { played: 30, win: 17, draw: 7, lose: 6, goals: { for: 46, against: 30 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 5,
+          team: { id: 119, name: "Internacional", logo: "https://media.api-sports.io/football/teams/119.png" },
+          points: 54,
+          goalsDiff: 14,
+          group: "Brasileirão Série A",
+          form: "V,V,V,E,V",
+          status: "same",
+          description: "Qualificação - Copa Libertadores",
+          all: { played: 30, win: 15, draw: 9, lose: 6, goals: { for: 42, against: 28 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 6,
+          team: { id: 126, name: "São Paulo", logo: "https://media.api-sports.io/football/teams/126.png" },
+          points: 51,
+          goalsDiff: 10,
+          group: "Brasileirão Série A",
+          form: "D,V,D,V,E",
+          status: "same",
+          description: "Qualificação - Copa Libertadores",
+          all: { played: 30, win: 15, draw: 6, lose: 9, goals: { for: 44, against: 34 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 7,
+          team: { id: 118, name: "Bahia", logo: "https://media.api-sports.io/football/teams/118.png" },
+          points: 48,
+          goalsDiff: 6,
+          group: "Brasileirão Série A",
+          form: "D,E,V,D,V",
+          status: "same",
+          description: "Fase de Grupos - Copa Sul-Americana",
+          all: { played: 30, win: 14, draw: 6, lose: 10, goals: { for: 43, against: 37 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 8,
+          team: { id: 135, name: "Cruzeiro", logo: "https://media.api-sports.io/football/teams/135.png" },
+          points: 46,
+          goalsDiff: 4,
+          group: "Brasileirão Série A",
+          form: "E,D,E,V,D",
+          status: "same",
+          description: "Fase de Grupos - Copa Sul-Americana",
+          all: { played: 30, win: 13, draw: 7, lose: 10, goals: { for: 38, against: 34 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 9,
+          team: { id: 1062, name: "Atlético-MG", logo: "https://media.api-sports.io/football/teams/1062.png" },
+          points: 44,
+          goalsDiff: 3,
+          group: "Brasileirão Série A",
+          form: "E,V,D,E,V",
+          status: "same",
+          description: "Fase de Grupos - Copa Sul-Americana",
+          all: { played: 30, win: 11, draw: 11, lose: 8, goals: { for: 41, against: 38 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 10,
+          team: { id: 133, name: "Vasco da Gama", logo: "https://media.api-sports.io/football/teams/133.png" },
+          points: 42,
+          goalsDiff: -2,
+          group: "Brasileirão Série A",
+          form: "V,D,E,V,D",
+          status: "same",
+          description: "Fase de Grupos - Copa Sul-Americana",
+          all: { played: 30, win: 12, draw: 6, lose: 12, goals: { for: 36, against: 38 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 11,
+          team: { id: 130, name: "Grêmio", logo: "https://media.api-sports.io/football/teams/130.png" },
+          points: 40,
+          goalsDiff: -3,
+          group: "Brasileirão Série A",
+          form: "D,V,E,D,V",
+          status: "same",
+          description: "Fase de Grupos - Copa Sul-Americana",
+          all: { played: 30, win: 11, draw: 7, lose: 12, goals: { for: 35, against: 38 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 12,
+          team: { id: 131, name: "Corinthians", logo: "https://media.api-sports.io/football/teams/131.png" },
+          points: 39,
+          goalsDiff: -1,
+          group: "Brasileirão Série A",
+          form: "V,V,V,D,E",
+          status: "same",
+          description: "Fase de Grupos - Copa Sul-Americana",
+          all: { played: 30, win: 10, draw: 9, lose: 11, goals: { for: 37, against: 38 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 13,
+          team: { id: 124, name: "Fluminense", logo: "https://media.api-sports.io/football/teams/124.png" },
+          points: 36,
+          goalsDiff: -6,
+          group: "Brasileirão Série A",
+          form: "V,V,D,D,V",
+          status: "same",
+          description: null,
+          all: { played: 30, win: 10, draw: 6, lose: 14, goals: { for: 28, against: 34 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 14,
+          team: { id: 134, name: "Athletico-PR", logo: "https://media.api-sports.io/football/teams/134.png" },
+          points: 35,
+          goalsDiff: -7,
+          group: "Brasileirão Série A",
+          form: "D,E,D,V,D",
+          status: "same",
+          description: null,
+          all: { played: 30, win: 9, draw: 8, lose: 13, goals: { for: 33, against: 40 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 15,
+          team: { id: 128, name: "Santos", logo: "https://media.api-sports.io/football/teams/128.png" },
+          points: 34,
+          goalsDiff: -9,
+          group: "Brasileirão Série A",
+          form: "V,D,E,D,E",
+          status: "same",
+          description: null,
+          all: { played: 30, win: 9, draw: 7, lose: 14, goals: { for: 31, against: 40 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 16,
+          team: { id: 147, name: "Red Bull Bragantino", logo: "https://media.api-sports.io/football/teams/147.png" },
+          points: 33,
+          goalsDiff: -8,
+          group: "Brasileirão Série A",
+          form: "E,E,D,E,D",
+          status: "same",
+          description: null,
+          all: { played: 30, win: 8, draw: 9, lose: 13, goals: { for: 34, against: 42 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 17,
+          team: { id: 144, name: "Vitória", logo: "https://media.api-sports.io/football/teams/144.png" },
+          points: 31,
+          goalsDiff: -13,
+          group: "Brasileirão Série A",
+          form: "D,V,V,D,E",
+          status: "down",
+          description: "Rebaixamento - Série B",
+          all: { played: 30, win: 8, draw: 7, lose: 15, goals: { for: 32, against: 45 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 18,
+          team: { id: 140, name: "Juventude", logo: "https://media.api-sports.io/football/teams/140.png" },
+          points: 30,
+          goalsDiff: -14,
+          group: "Brasileirão Série A",
+          form: "D,D,E,D,D",
+          status: "down",
+          description: "Rebaixamento - Série B",
+          all: { played: 30, win: 7, draw: 9, lose: 14, goals: { for: 36, against: 50 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 19,
+          team: { id: 142, name: "Cuiabá", logo: "https://media.api-sports.io/football/teams/142.png" },
+          points: 27,
+          goalsDiff: -18,
+          group: "Brasileirão Série A",
+          form: "E,D,D,E,D",
+          status: "down",
+          description: "Rebaixamento - Série B",
+          all: { played: 30, win: 6, draw: 9, lose: 15, goals: { for: 25, against: 43 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 20,
+          team: { id: 149, name: "Atlético-GO", logo: "https://media.api-sports.io/football/teams/149.png" },
+          points: 22,
+          goalsDiff: -24,
+          group: "Brasileirão Série A",
+          form: "D,D,V,D,D",
+          status: "down",
+          description: "Rebaixamento - Série B",
+          all: { played: 30, win: 5, draw: 7, lose: 18, goals: { for: 23, against: 47 } },
+          update: new Date().toISOString()
+        }
+      ];
+    }
+
+    // 2. Premier League (ID 39)
+    if (leagueId === 39) {
+      return [
+        {
+          rank: 1,
+          team: { id: 50, name: "Manchester City", logo: "https://media.api-sports.io/football/teams/50.png" },
+          points: 68,
+          goalsDiff: 38,
+          group: "Premier League",
+          form: "V,V,V,E,V",
+          status: "same",
+          description: "Fase de Grupos - UEFA Champions League",
+          all: { played: 28, win: 21, draw: 5, lose: 2, goals: { for: 68, against: 30 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 2,
+          team: { id: 40, name: "Liverpool", logo: "https://media.api-sports.io/football/teams/40.png" },
+          points: 66,
+          goalsDiff: 34,
+          group: "Premier League",
+          form: "V,V,E,V,V",
+          status: "same",
+          description: "Fase de Grupos - UEFA Champions League",
+          all: { played: 28, win: 20, draw: 6, lose: 2, goals: { for: 64, against: 30 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 3,
+          team: { id: 42, name: "Arsenal", logo: "https://media.api-sports.io/football/teams/42.png" },
+          points: 62,
+          goalsDiff: 31,
+          group: "Premier League",
+          form: "V,D,V,V,E",
+          status: "same",
+          description: "Fase de Grupos - UEFA Champions League",
+          all: { played: 28, win: 19, draw: 5, lose: 4, goals: { for: 60, against: 29 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 4,
+          team: { id: 49, name: "Chelsea", logo: "https://media.api-sports.io/football/teams/49.png" },
+          points: 54,
+          goalsDiff: 18,
+          group: "Premier League",
+          form: "E,V,V,D,V",
+          status: "same",
+          description: "Fase de Grupos - UEFA Champions League",
+          all: { played: 28, win: 16, draw: 6, lose: 6, goals: { for: 52, against: 34 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 5,
+          team: { id: 66, name: "Aston Villa", logo: "https://media.api-sports.io/football/teams/66.png" },
+          points: 52,
+          goalsDiff: 14,
+          group: "Premier League",
+          form: "D,V,E,V,V",
+          status: "same",
+          description: "Fase de Grupos - UEFA Europa League",
+          all: { played: 28, win: 16, draw: 4, lose: 8, goals: { for: 48, against: 34 } },
+          update: new Date().toISOString()
+        },
+        {
+          rank: 6,
+          team: { id: 47, name: "Tottenham", logo: "https://media.api-sports.io/football/teams/47.png" },
+          points: 48,
+          goalsDiff: 11,
+          group: "Premier League",
+          form: "V,E,D,D,V",
+          status: "same",
+          description: "Qualificação - UEFA Conference League",
+          all: { played: 28, win: 15, draw: 3, lose: 10, goals: { for: 51, against: 40 } },
+          update: new Date().toISOString()
+        }
+      ];
+    }
+
+    // 3. Fallback inteligente e dinâmico para outras ligas
+    return [
+      {
+        rank: 1,
+        team: { id: 541, name: "Real Madrid", logo: "https://media.api-sports.io/football/teams/541.png" },
+        points: 70,
+        goalsDiff: 39,
+        group: "Classificação Geral",
+        form: "V,V,V,E,V",
+        status: "same",
+        description: "Zona de Classificação Principal",
+        all: { played: 29, win: 22, draw: 4, lose: 3, goals: { for: 66, against: 27 } },
+        update: new Date().toISOString()
+      },
+      {
+        rank: 2,
+        team: { id: 529, name: "Barcelona", logo: "https://media.api-sports.io/football/teams/529.png" },
+        points: 66,
+        goalsDiff: 32,
+        group: "Classificação Geral",
+        form: "V,E,V,V,V",
+        status: "same",
+        description: "Zona de Classificação Principal",
+        all: { played: 29, win: 20, draw: 6, lose: 3, goals: { for: 63, against: 31 } },
+        update: new Date().toISOString()
+      },
+      {
+        rank: 3,
+        team: { id: 530, name: "Atlético Madrid", logo: "https://media.api-sports.io/football/teams/530.png" },
+        points: 58,
+        goalsDiff: 20,
+        group: "Classificação Geral",
+        form: "D,V,V,E,V",
+        status: "same",
+        description: "Zona de Classificação Principal",
+        all: { played: 29, win: 17, draw: 7, lose: 5, goals: { for: 50, against: 30 } },
+        update: new Date().toISOString()
+      },
+      {
+        rank: 4,
+        team: { id: 532, name: "Valencia", logo: "https://media.api-sports.io/football/teams/532.png" },
+        points: 49,
+        goalsDiff: 8,
+        group: "Classificação Geral",
+        form: "V,D,E,V,D",
+        status: "same",
+        description: "Zona de Qualificação Internacional",
+        all: { played: 29, win: 14, draw: 7, lose: 8, goals: { for: 40, against: 32 } },
+        update: new Date().toISOString()
+      },
+      {
+        rank: 5,
+        team: { id: 536, name: "Sevilla", logo: "https://media.api-sports.io/football/teams/536.png" },
+        points: 45,
+        goalsDiff: 4,
+        group: "Classificação Geral",
+        form: "E,V,D,D,V",
+        status: "same",
+        description: "Zona de Qualificação Internacional",
+        all: { played: 29, win: 12, draw: 9, lose: 8, goals: { for: 38, against: 34 } },
+        update: new Date().toISOString()
+      }
+    ];
   }
 };
+

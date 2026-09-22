@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, Sparkles, Database, Key, Info, ShieldCheck } from 'lucide-react';
+import { Save, Check, Sparkles, Database, Key, Info, ShieldCheck, Palette, RotateCcw } from 'lucide-react';
 import { storageService } from '../../services/storage';
 import { useQuotaMonitor } from '../../hooks/useQuotaMonitor';
+import { useTeamTheme } from '../../hooks/useTeamTheme';
 import type { Preferences } from '../../types/dashboard';
 import { POPULAR_LEAGUES } from '../../types/dashboard';
 
 export const SettingsPanel: React.FC = () => {
   const { quota } = useQuotaMonitor();
+  const { currentTheme, isCustomThemeActive, selectTheme, resetTheme, popularThemes } = useTeamTheme();
   const [prefs, setPrefs] = useState<Preferences>({
     apiKey: '',
     selectedLeagues: [],
@@ -240,8 +242,87 @@ export const SettingsPanel: React.FC = () => {
 
       <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)' }} />
 
+      {/* Seção - Tema Dinâmico por Clube */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Palette size={15} style={{ color: 'var(--color-primary)' }} />
+              <span>Tema Dinâmico por Equipe</span>
+            </h3>
+            <p style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+              Escolha seu clube de coração para pintar todo o app com suas cores oficiais!
+            </p>
+          </div>
+
+          {isCustomThemeActive && (
+            <button
+              onClick={resetTheme}
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                padding: '4px 10px',
+                fontSize: '0.7rem',
+                fontWeight: '700',
+                color: 'var(--color-text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+              title="Restaurar visual padrão do Arena Scores"
+            >
+              <RotateCcw size={12} />
+              <span>Restaurar Padrão</span>
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px', maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
+          {popularThemes.map((team) => {
+            const isActive = currentTheme.name === team.name;
+            return (
+              <button
+                key={team.name}
+                onClick={() => selectTheme(team)}
+                style={{
+                  padding: '8px 10px',
+                  borderRadius: '10px',
+                  border: isActive ? `2px solid ${team.primaryColor}` : '1px solid var(--border-color)',
+                  background: isActive ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <span
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: team.primaryColor,
+                    boxShadow: `0 0 8px ${team.glowColor}`,
+                    flexShrink: 0
+                  }}
+                />
+                <span style={{ fontSize: '0.74rem', fontWeight: isActive ? '800' : '600', color: isActive ? '#fff' : 'var(--color-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {team.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+
       {/* Botão Salvar */}
       <button
+
         onClick={handleSave}
         style={{
           display: 'flex',

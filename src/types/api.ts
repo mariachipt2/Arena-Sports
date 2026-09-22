@@ -124,3 +124,46 @@ export interface MatchStatistics {
   };
   statistics: StatItem[];
 }
+
+export interface StandingGoalStats {
+  for: number;
+  against: number;
+}
+
+export interface StandingMatchStats {
+  played: number;
+  win: number;
+  draw: number;
+  lose: number;
+  goals: StandingGoalStats;
+}
+
+export interface StandingItem {
+  rank: number;
+  team: {
+    id: number;
+    name: string;
+    logo: string;
+  };
+  points: number;
+  goalsDiff: number;
+  group: string;
+  form: string | null; // ex: "WWDLD" ou "VVEED"
+  status: string | null;
+  description: string | null; // ex: "Promotion - Copa Libertadores", "Relegation"
+  all: StandingMatchStats;
+  home?: StandingMatchStats;
+  away?: StandingMatchStats;
+  update: string;
+}
+
+export interface LeagueStandings {
+  id: number;
+  name: string;
+  country: string;
+  logo: string;
+  flag: string | null;
+  season: number;
+  standings: StandingItem[][];
+}
+

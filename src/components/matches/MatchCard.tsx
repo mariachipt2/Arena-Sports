@@ -3,6 +3,7 @@ import { Star } from 'lucide-react';
 import type { ApiFixture } from '../../types/api';
 import { TeamBadge } from '../common/TeamBadge';
 import { ScoreBadge } from '../common/ScoreBadge';
+import { CalendarButton } from '../common/CalendarButton';
 import { useFavorites } from '../../hooks/useFavorites';
 
 interface MatchCardProps {
@@ -89,6 +90,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {renderStatus()}
+          {!isFinished && <CalendarButton match={match} variant="compact" />}
           <button
             onClick={handleFavoriteClick}
             style={{
@@ -109,6 +111,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
             />
           </button>
         </div>
+
       </div>
 
       {/* Body do Card (Times e Placar) */}

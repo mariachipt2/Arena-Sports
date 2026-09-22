@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Settings, Database, Sparkles, Clock, Activity, Calendar, CheckCircle2, Star, Search } from 'lucide-react';
 import { useQuotaMonitor } from '../../hooks/useQuotaMonitor';
+import { useTeamTheme } from '../../hooks/useTeamTheme';
 import { storageService } from '../../services/storage';
 import type { TabType } from '../../types/dashboard';
 
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   liveCount = 0
 }) => {
   const { quota, refreshQuota } = useQuotaMonitor();
+  const { currentTheme, isCustomThemeActive, resetTheme } = useTeamTheme();
   const [time, setTime] = useState<string>('');
   const [isSimulated, setIsSimulated] = useState(true);
 
@@ -228,8 +230,59 @@ export const Header: React.FC<HeaderProps> = ({
             })()
           )}
 
+          {/* Indicador de Tema do Time Ativo */}
+          {isCustomThemeActive && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '5px 10px',
+                borderRadius: '8px',
+                background: 'var(--color-primary-glow)',
+                border: '1px solid var(--border-color-glow)',
+                fontSize: '0.74rem',
+                fontWeight: '700',
+                color: 'var(--color-primary)',
+                boxShadow: '0 0 12px var(--border-color-glow)'
+              }}
+              title={`Tema ativo: ${currentTheme.name}. Clique no X para restaurar o tema padrão.`}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: currentTheme.primaryColor,
+                  boxShadow: `0 0 8px ${currentTheme.primaryColor}`
+                }}
+              />
+              <span style={{ whiteSpace: 'nowrap' }}>{currentTheme.name}</span>
+              <button
+                onClick={resetTheme}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '0 2px',
+                  marginLeft: '2px',
+                  fontSize: '0.85rem',
+                  fontWeight: 'bold',
+                  lineHeight: 1
+                }}
+                title="Restaurar tema original Arena Scores"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
           {/* Botão de Configurações */}
           <button
+
             onClick={() => setActiveTab('settings')}
             style={{
               background: 'none',
