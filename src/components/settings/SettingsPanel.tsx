@@ -36,16 +36,19 @@ export const SettingsPanel: React.FC = () => {
   }, []);
 
   const handleLeagueToggle = (leagueId: number) => {
-    setPrefs(prev => {
-      const selected = [...prev.selectedLeagues];
-      const index = selected.indexOf(leagueId);
-      if (index === -1) {
-        selected.push(leagueId);
-      } else {
-        selected.splice(index, 1);
-      }
-      return { ...prev, selectedLeagues: selected };
-    });
+    const selected = [...prefs.selectedLeagues];
+    const index = selected.indexOf(leagueId);
+    if (index === -1) {
+      selected.push(leagueId);
+    } else {
+      selected.splice(index, 1);
+    }
+    const updated = { ...prefs, selectedLeagues: selected };
+    setPrefs(updated);
+
+    // Auto-salva imediatamente no storage e na URL para garantir persistência instantânea no iPhone e PWA
+    storageService.savePreferences(updated);
+    window.dispatchEvent(new Event('preferencesChanged'));
   };
 
   const handleSave = () => {
