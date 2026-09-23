@@ -1,0 +1,24 @@
+{
+  "name": "Arena Scores - Futebol ao Vivo",
+  "short_name": "Arena Scores",
+  "description": "Acompanhe partidas, resultados ao vivo, tabelas e estatísticas de futebol em tempo real.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "./favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

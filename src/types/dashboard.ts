@@ -1,6 +1,6 @@
 export type TabType = 'live' | 'upcoming' | 'finished' | 'favorites' | 'settings';
 
-export type FilterType = 'all' | 'local' | 'international';
+export type FilterType = 'my_leagues' | 'all' | 'local' | 'international';
 
 export interface QuotaInfo {
   limit: number;

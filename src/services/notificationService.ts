@@ -21,10 +21,11 @@ class NotificationService {
   public init(): void {
     if (typeof window === 'undefined') return;
 
-    // Registra Service Worker se suportado
+    // Registra Service Worker se suportado (usando caminho relativo para suportar subpastas como GitHub Pages)
     if ('serviceWorker' in navigator) {
+      const swUrl = './sw.js';
       navigator.serviceWorker
-        .register('/sw.js')
+        .register(swUrl)
         .then((reg) => {
           this.swRegistration = reg;
           console.log('[NotificationService] Service Worker registrado com sucesso:', reg.scope);

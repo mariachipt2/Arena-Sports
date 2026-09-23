@@ -65,21 +65,24 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
   const handleGoogleCalendar = (e: React.MouseEvent) => {
     e.stopPropagation();
     calendarUtils.openGoogleCalendar(match);
-    setFeedback('Google Agenda aberto');
+    setFeedback('Abrindo Google Agenda...');
     setTimeout(() => {
       setFeedback(null);
       setIsOpen(false);
-    }, 1800);
+    }, 2000);
   };
 
-  const handleMobileCalendarSync = (e: React.MouseEvent) => {
+  const handleAppleCalendarSync = (e: React.MouseEvent) => {
     e.stopPropagation();
-    calendarUtils.syncMobileCalendar(match);
-    setFeedback('Evento com alarmes baixado');
+    calendarUtils.openAppleCalendar(match);
+    const msg = calendarUtils.isIOS()
+      ? 'Arquivo gerado! Toque para adicionar ao Calendário'
+      : 'Arquivo .ics baixado com alarmes';
+    setFeedback(msg);
     setTimeout(() => {
       setFeedback(null);
       setIsOpen(false);
-    }, 1800);
+    }, 2500);
   };
 
   const handleTestNotification = async (e: React.MouseEvent) => {
@@ -228,7 +231,38 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
             {isScheduled && <Check size={16} style={{ color: 'var(--color-success-mint)' }} />}
           </button>
 
-          {/* Opção 1: Google Agenda */}
+          {/* Opção 1: Calendário do iPhone / Apple (.ics) */}
+          <button
+            onClick={handleAppleCalendarSync}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              cursor: 'pointer',
+              color: '#fff',
+              fontSize: '0.78rem',
+              fontWeight: '600',
+              textAlign: 'left',
+              transition: 'background 0.15s'
+            }}
+            className="calendar-dropdown-item"
+            title="Salvar evento no Calendário do iPhone ou exportar .ics"
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Smartphone size={16} style={{ color: '#00f0ff' }} />
+              <div>
+                <div>Calendário do iPhone / Apple (.ics)</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Com alarmes de 15m e 30m no aparelho</div>
+              </div>
+            </div>
+            <Download size={13} style={{ color: 'var(--color-text-muted)' }} />
+          </button>
+
+          {/* Opção 2: Google Agenda */}
           <button
             onClick={handleGoogleCalendar}
             style={{
@@ -247,45 +281,16 @@ export const CalendarButton: React.FC<CalendarButtonProps> = ({ match, variant =
               transition: 'background 0.15s'
             }}
             className="calendar-dropdown-item"
+            title="Sincronizar evento na conta Google"
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '1.05rem' }}>🗓️</span>
               <div>
                 <div>Google Agenda</div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Sincroniza na sua conta Google</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Sincroniza direto na conta Google</div>
               </div>
             </div>
             <ExternalLink size={13} style={{ color: 'var(--color-text-muted)' }} />
-          </button>
-
-          {/* Opção 2: Calendário do Celular (Google / Apple com Alarmes) */}
-          <button
-            onClick={handleMobileCalendarSync}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              color: '#fff',
-              fontSize: '0.78rem',
-              fontWeight: '600',
-              textAlign: 'left',
-              transition: 'background 0.15s'
-            }}
-            className="calendar-dropdown-item"
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Smartphone size={16} style={{ color: '#00f0ff' }} />
-              <div>
-                <div>App Google Agenda / Celular (.ics)</div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--color-text-muted)' }}>Com alarme de 15m e 30m no aparelho</div>
-              </div>
-            </div>
-            <Download size={13} style={{ color: 'var(--color-text-muted)' }} />
           </button>
 
           {/* Divisor */}

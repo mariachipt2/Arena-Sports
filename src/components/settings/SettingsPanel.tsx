@@ -124,9 +124,14 @@ export const SettingsPanel: React.FC = () => {
 
       {/* Seção - Ligas Favoritas */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fff' }}>Ligas Prioritárias</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fff' }}>Ligas que Deseja Seguir</h3>
+          <span style={{ fontSize: '0.72rem', color: 'var(--color-primary)', fontWeight: '700' }}>
+            {prefs.selectedLeagues.length} selecionada(s)
+          </span>
+        </div>
         <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-          Selecione quais ligas devem ser exibidas prioritariamente no topo do seu grid.
+          Selecione as ligas que deseja acompanhar. Elas serão exibidas na pílula <strong>⭐ Minhas Ligas</strong> e no topo de todos os jogos.
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: '6px' }}>
@@ -161,6 +166,19 @@ export const SettingsPanel: React.FC = () => {
               </button>
             );
           })}
+        </div>
+
+        <div style={{
+          marginTop: '6px',
+          padding: '8px 12px',
+          borderRadius: '8px',
+          background: 'rgba(157, 124, 252, 0.08)',
+          border: '1px solid rgba(157, 124, 252, 0.2)',
+          fontSize: '0.72rem',
+          color: 'var(--color-text-muted)',
+          lineHeight: '1.4'
+        }}>
+          📱 <strong style={{ color: '#fff' }}>Sincronização com o iPhone:</strong> Ao salvar, suas ligas são embutidas na URL e salvas no sistema. Ao tocar no Safari em <strong>Compartilhar &rarr; Adicionar à Tela de Início</strong>, seu atalho lembrará das suas preferências automaticamente!
         </div>
       </div>
 

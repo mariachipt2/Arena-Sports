@@ -15,10 +15,19 @@ const sanitizeFilename = (text: string): string => {
 };
 
 export const calendarUtils = {
+  // Detecta se o dispositivo é iOS (iPhone, iPad, iPod)
+  isIOS(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    return (
+      /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+  },
+
   // Detecta se o usuário está acessando por celular/tablet
   isMobile(): boolean {
     if (typeof navigator === 'undefined') return false;
-    return /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return /iPhone|iPad|iPod|Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || this.isIOS();
   },
 
   // Gera link web oficial para adicionar evento ao Google Agenda com detalhes e instruções de alarme
@@ -63,10 +72,18 @@ export const calendarUtils = {
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   },
 
-  // Abre o Google Agenda diretamente (em nova aba ou no app)
+  // Abre o Google Agenda diretamente (em nova aba ou na mesma tela se popup for bloqueado no PWA)
   openGoogleCalendar(match: ApiFixture): void {
     const url = this.generateGoogleCalendarUrl(match);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      const newWin = window.open(url, '_blank', 'noopener,noreferrer');
+      // Se bloqueado pelo popup blocker do Safari ou PWA standalone
+      if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+        window.location.href = url;
+      }
+    } catch {
+      window.location.href = url;
+    }
   },
 
   // Gera conteúdo .ics padrão RFC 5545 com múltiplos alarmes (VALARM) de 15m, 30m e início
@@ -127,24 +144,41 @@ export const calendarUtils = {
     ].join('\r\n');
   },
 
-  // Faz o download do arquivo .ics formatado para acionar o calendário do celular (Google Agenda / Apple / Samsung)
+  // Faz o download do arquivo .ics formatado para acionar o calendário do celular (Apple / Google Agenda / Samsung)
   downloadIcsFile(match: ApiFixture): void {
     const icsContent = this.buildIcsContent(match);
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const filename = `jogo-${sanitizeFilename(match.teams.home.name)}-vs-${sanitizeFilename(match.teams.away.name)}.ics`;
 
+    const objectUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.href = window.URL.createObjectURL(blob);
+    link.href = objectUrl;
     link.setAttribute('download', filename);
+    link.setAttribute('target', '_blank');
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(link.href);
+
+    // CRÍTICO NO SAFARI / IOS: O WebKit não dispara o download de forma síncrona.
+    // Revogar imediatamente cancela o download antes de iniciar.
+    // Damos 60 segundos de janela antes de limpar a URL do objeto.
+    setTimeout(() => {
+      try {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(objectUrl);
+      } catch {
+        // Ignora se já tiver sido removido
+      }
+    }, 60000);
+  },
+
+  // Método específico para Apple Calendário (iPhone / Mac / iPad)
+  openAppleCalendar(match: ApiFixture): void {
+    this.downloadIcsFile(match);
   },
 
   // Sincroniza diretamente no celular (Android / iOS / Desktop)
   syncMobileCalendar(match: ApiFixture): void {
-    // Baixa o arquivo .ics que celulares Android e iOS reconhecem e abrem direto no app do Google Agenda ou Calendário nativo
     this.downloadIcsFile(match);
   }
 };

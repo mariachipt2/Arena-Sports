@@ -14,6 +14,7 @@ import { storageService } from './services/storage';
 import { notificationService } from './services/notificationService';
 
 function App() {
+  const [preferences, setPreferences] = useState(() => storageService.getPreferences());
   const [activeTab, setActiveTab] = useState<TabType>('live');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -22,6 +23,15 @@ function App() {
   // Inicializa o serviço de notificações e Service Worker para celular
   useEffect(() => {
     notificationService.init();
+
+    const handlePrefsChange = () => {
+      setPreferences(storageService.getPreferences());
+    };
+    window.addEventListener('preferencesChanged', handlePrefsChange);
+
+    return () => {
+      window.removeEventListener('preferencesChanged', handlePrefsChange);
+    };
   }, []);
   
   // Estado para alertas de gol
@@ -110,13 +120,17 @@ function App() {
     return [];
   };
 
-  // Aplica filtros de pesquisa e país/tipo (Nacionais vs Internacionais)
+  // Aplica filtros de pesquisa, minhas ligas e país/tipo (Nacionais vs Internacionais)
   const getFilteredMatches = (): ApiFixture[] => {
     let matches = getTabMatches();
-    const prefs = storageService.getPreferences();
+    const prefs = preferences;
 
-    // 1. Filtro de Tipo (Nacional vs Internacional)
-    if (filterType === 'local') {
+    // 1. Filtro de Tipo (Minhas Ligas, Nacional vs Internacional)
+    if (filterType === 'my_leagues') {
+      if (prefs.selectedLeagues && prefs.selectedLeagues.length > 0) {
+        matches = matches.filter((m) => prefs.selectedLeagues.includes(m.league.id));
+      }
+    } else if (filterType === 'local') {
       // Ligas locais (Brasil)
       matches = matches.filter((m) => m.league.country.toLowerCase() === 'brazil');
     } else if (filterType === 'international') {
@@ -137,7 +151,7 @@ function App() {
     }
 
     // 3. Ordenação baseada em ligas prioritárias configuradas nas preferências do usuário
-    if (prefs.selectedLeagues.length > 0) {
+    if (prefs.selectedLeagues && prefs.selectedLeagues.length > 0) {
       matches = [...matches].sort((a, b) => {
         const aPriority = prefs.selectedLeagues.includes(a.league.id) ? 1 : 0;
         const bPriority = prefs.selectedLeagues.includes(b.league.id) ? 1 : 0;
@@ -186,6 +200,29 @@ function App() {
           <>
             {/* Barra de Filtros Rápidos (Pílulas Horizontais) */}
             <div className="filter-scroll-container">
+              <button 
+                className={`filter-pill ${filterType === 'my_leagues' ? 'active' : ''}`}
+                onClick={() => setFilterType('my_leagues')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <span>⭐ Minhas Ligas</span>
+                {preferences.selectedLeagues?.length > 0 && (
+                  <span style={{
+                    fontSize: '0.65rem',
+                    background: filterType === 'my_leagues' ? '#fff' : 'rgba(255,255,255,0.15)',
+                    color: filterType === 'my_leagues' ? 'var(--color-primary)' : '#fff',
+                    borderRadius: '999px',
+                    padding: '1px 6px',
+                    fontWeight: '800'
+                  }}>
+                    {preferences.selectedLeagues.length}
+                  </span>
+                )}
+              </button>
               <button 
                 className={`filter-pill ${filterType === 'all' ? 'active' : ''}`}
                 onClick={() => setFilterType('all')}
@@ -237,7 +274,9 @@ function App() {
                 matches={filteredMatches}
                 onMatchSelect={setSelectedMatch}
                 emptyMessage={
-                  activeTab === 'live' 
+                  filterType === 'my_leagues'
+                    ? "Nenhuma partida encontrada hoje para as ligas que você selecionou. Toque em 'Todos os Jogos' ou configure mais ligas na aba Ajustes."
+                    : activeTab === 'live' 
                     ? "Não há jogos ao vivo ocorrendo no momento para este filtro."
                     : activeTab === 'favorites'
                     ? "Você não possui nenhuma partida favoritada. Clique na estrela dos cards para monitorá-las!"

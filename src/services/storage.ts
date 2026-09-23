@@ -66,25 +66,49 @@ export const storageService = {
   // --- PREFERÊNCIAS DO USUÁRIO ---
   getPreferences(): Preferences {
     try {
+      let result: Preferences = { ...DEFAULT_PREFS };
       const prefs = localStorage.getItem('arena_preferences');
-      if (!prefs) {
-        localStorage.setItem('arena_preferences', JSON.stringify(DEFAULT_PREFS));
-        return DEFAULT_PREFS;
+      if (prefs) {
+        const parsed = JSON.parse(prefs);
+        result = {
+          ...DEFAULT_PREFS,
+          ...parsed,
+          apiKey: envKey,
+          useSimulation: false
+        };
       }
-      const parsed = JSON.parse(prefs);
-      
-      // Força permanentemente o modo de dados reais e a chave API interna
-      const result: Preferences = {
-        ...DEFAULT_PREFS,
-        ...parsed,
-        apiKey: envKey,
-        useSimulation: false
-      };
 
-      // Se o iPhone ou navegador tiver guardado useSimulation: true, limpa e corrige imediatamente
-      if (parsed.useSimulation !== false || parsed.apiKey !== envKey) {
+      // Sincronização inteligente com a URL (fundamental para PWA / atalhos da tela de início do iPhone)
+      if (typeof window !== 'undefined' && window.location) {
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const urlLeagues = urlParams.get('leagues');
+          if (urlLeagues) {
+            const parsedLeagues = urlLeagues
+              .split(',')
+              .map(id => parseInt(id.trim(), 10))
+              .filter(id => !isNaN(id) && id > 0);
+
+            if (parsedLeagues.length > 0) {
+              result.selectedLeagues = parsedLeagues;
+              // Persiste no localStorage do contêiner atual (ex: PWA isolado do iPhone)
+              localStorage.setItem('arena_preferences', JSON.stringify(result));
+            }
+          } else if (result.selectedLeagues && result.selectedLeagues.length > 0 && window.history && window.history.replaceState) {
+            // Se a URL não tiver o parâmetro ainda, reflete as ligas configuradas na URL
+            // para que qualquer atalho criado pelo Safari já salve a URL com as preferências embutidas
+            const url = new URL(window.location.href);
+            url.searchParams.set('leagues', result.selectedLeagues.join(','));
+            window.history.replaceState(null, '', url.toString());
+          }
+        } catch (e) {
+          console.warn('Erro ao sincronizar ligas com a URL:', e);
+        }
+      }
+
+      if (!prefs || JSON.parse(prefs).useSimulation !== false || JSON.parse(prefs).apiKey !== envKey) {
         localStorage.setItem('arena_preferences', JSON.stringify(result));
-        this.clearCache();
+        if (prefs) this.clearCache();
       }
 
       return result;
@@ -101,6 +125,21 @@ export const storageService = {
         useSimulation: false
       };
       localStorage.setItem('arena_preferences', JSON.stringify(sanitizedPrefs));
+
+      // Atualiza a URL sem recarregar para que o atalho do iOS/iPhone guarde as ligas selecionadas
+      if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
+        try {
+          const url = new URL(window.location.href);
+          if (sanitizedPrefs.selectedLeagues && sanitizedPrefs.selectedLeagues.length > 0) {
+            url.searchParams.set('leagues', sanitizedPrefs.selectedLeagues.join(','));
+          } else {
+            url.searchParams.delete('leagues');
+          }
+          window.history.replaceState(null, '', url.toString());
+        } catch (err) {
+          console.warn('Erro ao atualizar URL com preferências:', err);
+        }
+      }
     } catch (e) {
       console.error('Erro ao salvar preferências:', e);
     }
