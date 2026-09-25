@@ -11,6 +11,8 @@ export interface QuotaInfo {
 export interface Preferences {
   apiKey: string;
   selectedLeagues: number[]; // ID das ligas que o usuário deseja priorizar
+  hiddenLeagues: number[];   // ID das ligas que o usuário optou por não seguir / ocultar
+  hiddenLeagueNames?: Record<number, string>; // Mapeia ID -> Nome da Liga para listagem nos ajustes
   useSimulation: boolean;
 }
 

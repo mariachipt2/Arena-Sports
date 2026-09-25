@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Settings, Database, Clock, Activity, Calendar, CheckCircle2, Star, Search } from 'lucide-react';
-import { useQuotaMonitor } from '../../hooks/useQuotaMonitor';
+import { Settings, Clock, Activity, Calendar, CheckCircle2, Star, Search } from 'lucide-react';
 import { useTeamTheme } from '../../hooks/useTeamTheme';
 import type { TabType } from '../../types/dashboard';
 
@@ -21,7 +20,6 @@ export const Header: React.FC<HeaderProps> = ({
   setSearchQuery,
   liveCount = 0
 }) => {
-  const { quota, refreshQuota } = useQuotaMonitor();
   const { currentTheme, isCustomThemeActive, resetTheme } = useTeamTheme();
   const [time, setTime] = useState<string>('');
 
@@ -34,14 +32,10 @@ export const Header: React.FC<HeaderProps> = ({
     updateClock();
     const interval = setInterval(updateClock, 1000);
 
-    // Recarrega cota periodicamente
-    const intervalQuota = setInterval(refreshQuota, 5000);
-
     return () => {
       clearInterval(interval);
-      clearInterval(intervalQuota);
     };
-  }, [refreshQuota]);
+  }, []);
 
   return (
     <header className="header-wrap">
@@ -144,44 +138,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="tabular-nums">{time}</span>
           </div>
 
-          {/* Status da Conexão / Cota da API Oficial */}
-          {(() => {
-            const limit = quota?.limit ?? 100;
-            const remaining = quota?.remaining ?? 35;
-            const used = Math.max(0, limit - remaining);
-            const percentUsed = Math.min(100, Math.max(0, Math.round((used / limit) * 100)));
-
-            // Cores dinâmicas de acordo com o consumo
-            const color = percentUsed >= 80 ? '#ff4757' : percentUsed >= 50 ? '#ffa502' : '#2ed573';
-            const bg = percentUsed >= 80 ? 'rgba(255, 71, 87, 0.12)' : percentUsed >= 50 ? 'rgba(255, 165, 2, 0.12)' : 'rgba(46, 213, 115, 0.12)';
-            const borderColor = percentUsed >= 80 ? 'rgba(255, 71, 87, 0.3)' : percentUsed >= 50 ? 'rgba(255, 165, 2, 0.3)' : 'rgba(46, 213, 115, 0.3)';
-
-            return (
-              <button
-                onClick={() => setActiveTab('settings')}
-                title={`Cota da API: ${used}/${limit} requisições usadas (${remaining} restantes). Reseta às 21:00 BRT. Clique para gerenciar.`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '7px',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  backgroundColor: bg,
-                  border: `1px solid ${borderColor}`,
-                  fontSize: '0.74rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  color: '#fff',
-                  transition: 'all 0.2s'
-                }}
-              >
-                <Database size={13} style={{ color }} />
-                <span>
-                  API: <strong style={{ color }}>{percentUsed}% usado</strong> ({remaining}/{limit})
-                </span>
-              </button>
-            );
-          })()}
 
           {/* Indicador de Tema do Time Ativo */}
           {isCustomThemeActive && (

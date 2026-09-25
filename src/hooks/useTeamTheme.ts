@@ -25,14 +25,53 @@ export const useTeamTheme = () => {
     themeService.applyTheme(theme);
   }, []);
 
-  const selectThemeByTeam = useCallback((teamIdOrName: number | string) => {
-    const found = themeService.findTeamTheme(teamIdOrName);
-    if (found) {
-      themeService.applyTheme(found);
+  const selectThemeByTeam = useCallback((teamInput: { id?: number; name: string; logo?: string } | number | string) => {
+    const resolved = themeService.resolveTeamTheme(teamInput);
+    themeService.applyTheme(resolved);
+    return true;
+  }, []);
+
+  const isThemeActiveForTeam = useCallback((teamInput: { id?: number; name?: string } | number | string): boolean => {
+    if (currentTheme.name === DEFAULT_THEME.name) return false;
+
+    let targetId: number | undefined;
+    let targetName: string | undefined;
+
+    if (typeof teamInput === 'object' && teamInput !== null) {
+      targetId = teamInput.id;
+      targetName = teamInput.name;
+    } else if (typeof teamInput === 'number') {
+      targetId = teamInput;
+    } else if (typeof teamInput === 'string') {
+      targetName = teamInput;
+    }
+
+    if (targetId && currentTheme.id && targetId === currentTheme.id) {
       return true;
     }
+
+    if (targetName && currentTheme.name) {
+      const cleanA = targetName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      const cleanB = currentTheme.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      if (cleanA === cleanB || cleanA.includes(cleanB) || cleanB.includes(cleanA)) {
+        return true;
+      }
+    }
+
     return false;
-  }, []);
+  }, [currentTheme]);
+
+  const toggleThemeByTeam = useCallback((teamInput: { id?: number; name: string; logo?: string } | number | string): { active: boolean; themeName: string } => {
+    const isActive = isThemeActiveForTeam(teamInput);
+    if (isActive) {
+      themeService.resetToDefault();
+      return { active: false, themeName: 'Arena' };
+    } else {
+      const theme = themeService.resolveTeamTheme(teamInput);
+      themeService.applyTheme(theme);
+      return { active: true, themeName: theme.name };
+    }
+  }, [isThemeActiveForTeam]);
 
   const resetTheme = useCallback(() => {
     themeService.resetToDefault();
@@ -45,6 +84,8 @@ export const useTeamTheme = () => {
     isCustomThemeActive,
     selectTheme,
     selectThemeByTeam,
+    toggleThemeByTeam,
+    isThemeActiveForTeam,
     resetTheme,
     popularThemes: POPULAR_TEAM_THEMES,
   };

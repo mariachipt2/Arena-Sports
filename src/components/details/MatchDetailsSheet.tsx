@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { X, Activity, Users, BarChart2, Calendar, Star, Trophy, Palette } from 'lucide-react';
+import { X, Activity, Users, BarChart2, Calendar, Star, Trophy, Palette, EyeOff } from 'lucide-react';
 import type { ApiFixture, MatchLineup, MatchStatistics, StandingItem } from '../../types/api';
 import { apiFootballService } from '../../services/apiFootball';
+import { storageService } from '../../services/storage';
 import { TeamBadge } from '../common/TeamBadge';
 import { ScoreBadge } from '../common/ScoreBadge';
 import { CalendarButton } from '../common/CalendarButton';
@@ -21,12 +22,13 @@ type DetailTab = 'timeline' | 'lineups' | 'stats' | 'standings';
 
 export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onClose }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { selectThemeByTeam } = useTeamTheme();
+  const { toggleThemeByTeam, isThemeActiveForTeam } = useTeamTheme();
   const [activeTab, setActiveTab] = useState<DetailTab>('timeline');
   const [lineups, setLineups] = useState<MatchLineup[]>([]);
   const [stats, setStats] = useState<MatchStatistics[]>([]);
   const [standings, setStandings] = useState<StandingItem[]>([]);
   const [themeFeedback, setThemeFeedback] = useState<string | null>(null);
+  const [isLeagueFollowed, setIsLeagueFollowed] = useState<boolean>(() => match ? storageService.isLeagueFollowed(match.league.id) : false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
     setStandings([]);
     setActiveTab('timeline');
     setError(null);
+    setIsLeagueFollowed(storageService.isLeagueFollowed(match.league.id));
 
     // Carregamento Lazy Load sob demanda
     const loadDetails = async () => {
@@ -71,6 +74,9 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
   // Vencedores
   const homeWinner = teams.home.winner === true || (isFinished && (goals.home || 0) > (goals.away || 0));
   const awayWinner = teams.away.winner === true || (isFinished && (goals.away || 0) > (goals.home || 0));
+
+  const isHomeActive = isThemeActiveForTeam({ id: teams.home.id, name: teams.home.name });
+  const isAwayActive = isThemeActiveForTeam({ id: teams.away.id, name: teams.away.name });
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -121,10 +127,65 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
 
         {/* Header do Jogo (Liga e Status) */}
         <div style={{ textAlign: 'center', marginBottom: '16px', paddingRight: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: '600' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--color-text-muted)', fontWeight: '600', flexWrap: 'wrap' }}>
             {league.logo && <img src={league.logo} alt="" width={16} style={{ objectFit: 'contain' }} />}
             <span>{league.name}</span>
             {league.round && <span>• {league.round}</span>}
+
+            {/* Ações da Liga: Seguir / Não Seguir */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', marginLeft: '4px' }}>
+              <button
+                onClick={() => {
+                  const res = storageService.toggleFollowLeague(league.id, league.name);
+                  setIsLeagueFollowed(res);
+                  setThemeFeedback(res ? `Liga ${league.name} seguida!` : `Deixou de seguir ${league.name}`);
+                  setTimeout(() => setThemeFeedback(null), 2500);
+                }}
+                style={{
+                  background: isLeagueFollowed ? 'rgba(157, 124, 252, 0.15)' : 'rgba(255,255,255,0.05)',
+                  border: isLeagueFollowed ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
+                  color: isLeagueFollowed ? '#fff' : 'var(--color-text-muted)',
+                  borderRadius: '999px',
+                  padding: '2px 8px',
+                  fontSize: '0.68rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: '600',
+                  transition: 'all 0.15s'
+                }}
+                title={isLeagueFollowed ? "Você está seguindo esta liga (toque para deixar de seguir)" : "Seguir esta liga"}
+              >
+                <Star size={11} fill={isLeagueFollowed ? 'var(--color-warning)' : 'none'} color={isLeagueFollowed ? 'var(--color-warning)' : 'currentColor'} />
+                <span>{isLeagueFollowed ? 'Seguindo' : 'Seguir liga'}</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  storageService.hideLeague(league.id, league.name);
+                  onClose();
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--color-text-muted)',
+                  borderRadius: '999px',
+                  padding: '2px 8px',
+                  fontSize: '0.68rem',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: '600',
+                  transition: 'all 0.15s'
+                }}
+                title="Não seguir esta liga (ocultar jogos do feed)"
+              >
+                <EyeOff size={11} />
+                <span>Não seguir</span>
+              </button>
+            </div>
           </div>
           
           <div 
@@ -189,32 +250,35 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                const ok = selectThemeByTeam(teams.home.id || teams.home.name);
-                if (ok) {
-                  setThemeFeedback(`Tema ${teams.home.name} ativado!`);
-                  setTimeout(() => setThemeFeedback(null), 2500);
+                const res = toggleThemeByTeam({ id: teams.home.id, name: teams.home.name, logo: teams.home.logo });
+                if (res.active) {
+                  setThemeFeedback(`Tema ${res.themeName} ativado!`);
+                } else {
+                  setThemeFeedback('Tema padrão Arena restaurado!');
                 }
+                setTimeout(() => setThemeFeedback(null), 2500);
               }}
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid var(--border-color)',
+                background: isHomeActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)',
+                border: isHomeActive ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
                 borderRadius: '6px',
-                padding: '2px 8px',
-                fontSize: '0.65rem',
+                padding: '3px 8px',
+                fontSize: '0.68rem',
                 fontWeight: '700',
-                color: 'var(--color-text-muted)',
+                color: isHomeActive ? '#fff' : 'var(--color-text-muted)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
                 marginTop: '2px',
-                transition: 'all 0.15s'
+                transition: 'all 0.15s',
+                boxShadow: isHomeActive ? '0 0 10px var(--border-color-glow)' : 'none'
               }}
-              title={`Mudar visual do app para as cores do ${teams.home.name}`}
-              className="team-theme-btn"
+              title={isHomeActive ? "Tema ativo! Toque para restaurar o tema padrão" : `Mudar visual do app para as cores do ${teams.home.name}`}
+              className={`team-theme-btn ${isHomeActive ? 'active' : ''}`}
             >
               <Palette size={11} />
-              <span>Tema</span>
+              <span>{isHomeActive ? 'Tema Ativo' : 'Tema'}</span>
             </button>
           </div>
 
@@ -276,32 +340,35 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                const ok = selectThemeByTeam(teams.away.id || teams.away.name);
-                if (ok) {
-                  setThemeFeedback(`Tema ${teams.away.name} ativado!`);
-                  setTimeout(() => setThemeFeedback(null), 2500);
+                const res = toggleThemeByTeam({ id: teams.away.id, name: teams.away.name, logo: teams.away.logo });
+                if (res.active) {
+                  setThemeFeedback(`Tema ${res.themeName} ativado!`);
+                } else {
+                  setThemeFeedback('Tema padrão Arena restaurado!');
                 }
+                setTimeout(() => setThemeFeedback(null), 2500);
               }}
               style={{
-                background: 'rgba(255,255,255,0.04)',
-                border: '1px solid var(--border-color)',
+                background: isAwayActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)',
+                border: isAwayActive ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
                 borderRadius: '6px',
-                padding: '2px 8px',
-                fontSize: '0.65rem',
+                padding: '3px 8px',
+                fontSize: '0.68rem',
                 fontWeight: '700',
-                color: 'var(--color-text-muted)',
+                color: isAwayActive ? '#fff' : 'var(--color-text-muted)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '4px',
                 marginTop: '2px',
-                transition: 'all 0.15s'
+                transition: 'all 0.15s',
+                boxShadow: isAwayActive ? '0 0 10px var(--border-color-glow)' : 'none'
               }}
-              title={`Mudar visual do app para as cores do ${teams.away.name}`}
-              className="team-theme-btn"
+              title={isAwayActive ? "Tema ativo! Toque para restaurar o tema padrão" : `Mudar visual do app para as cores do ${teams.away.name}`}
+              className={`team-theme-btn ${isAwayActive ? 'active' : ''}`}
             >
               <Palette size={11} />
-              <span>Tema</span>
+              <span>{isAwayActive ? 'Tema Ativo' : 'Tema'}</span>
             </button>
           </div>
         </div>

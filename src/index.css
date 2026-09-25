@@ -618,3 +618,29 @@ body {
   flex-shrink: 0;
   margin-top: 2px;
 }
+
+/* Estilos de Tema do Time e Modal Adaptativo */
+:root[data-team-active="true"] .bottom-sheet-content {
+  border-top-color: var(--color-primary);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4), 0 0 30px var(--color-primary-glow);
+}
+
+.team-theme-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.team-theme-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.15);
+}
+
+.team-theme-btn.active {
+  animation: pulse-theme 2.2s infinite;
+}
+
+@keyframes pulse-theme {
+  0% { box-shadow: 0 0 0 0 var(--border-color-glow); }
+  70% { box-shadow: 0 0 0 6px rgba(0, 0, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+}
+

@@ -125,6 +125,11 @@ function App() {
     let matches = getTabMatches();
     const prefs = preferences;
 
+    // 0. Exclui ligas que o usuário optou por não seguir / ocultar
+    if (prefs.hiddenLeagues && prefs.hiddenLeagues.length > 0) {
+      matches = matches.filter((m) => !prefs.hiddenLeagues.includes(m.league.id));
+    }
+
     // 1. Filtro de Tipo (Minhas Ligas, Nacional vs Internacional)
     if (filterType === 'my_leagues') {
       if (prefs.selectedLeagues && prefs.selectedLeagues.length > 0) {
@@ -273,6 +278,7 @@ function App() {
               <MatchGrid
                 matches={filteredMatches}
                 onMatchSelect={setSelectedMatch}
+                onOpenSettings={() => setActiveTab('settings')}
                 emptyMessage={
                   filterType === 'my_leagues'
                     ? "Nenhuma partida encontrada hoje para as ligas que você selecionou. Toque em 'Todos os Jogos' ou configure mais ligas na aba Ajustes."

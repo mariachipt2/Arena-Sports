@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, Sparkles, Database, Info, Palette, RotateCcw, Bell, Smartphone, Trash2 } from 'lucide-react';
+import { Save, Check, Sparkles, Database, Info, Palette, RotateCcw, Bell, Smartphone, Trash2, EyeOff } from 'lucide-react';
 import { storageService } from '../../services/storage';
 import { notificationService, type ScheduledReminder } from '../../services/notificationService';
 import { useQuotaMonitor } from '../../hooks/useQuotaMonitor';
@@ -48,6 +48,18 @@ export const SettingsPanel: React.FC = () => {
 
     // Auto-salva imediatamente no storage e na URL para garantir persistência instantânea no iPhone e PWA
     storageService.savePreferences(updated);
+    window.dispatchEvent(new Event('preferencesChanged'));
+  };
+
+  const handleUnhideLeague = (leagueId: number) => {
+    storageService.unhideLeague(leagueId);
+    setPrefs(storageService.getPreferences());
+  };
+
+  const handleUnhideAllLeagues = () => {
+    const updated = { ...prefs, hiddenLeagues: [] };
+    storageService.savePreferences(updated);
+    setPrefs(updated);
     window.dispatchEvent(new Event('preferencesChanged'));
   };
 
@@ -183,6 +195,92 @@ export const SettingsPanel: React.FC = () => {
         }}>
           📱 <strong style={{ color: '#fff' }}>Sincronização com o iPhone:</strong> Ao salvar, suas ligas são embutidas na URL e salvas no sistema. Ao tocar no Safari em <strong>Compartilhar &rarr; Adicionar à Tela de Início</strong>, seu atalho lembrará das suas preferências automaticamente!
         </div>
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+
+      {/* Seção - Ligas Ocultadas (Não Seguidas) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <EyeOff size={15} style={{ color: 'var(--color-warning)' }} />
+            <span>Ligas Ocultadas (Não Seguidas)</span>
+          </h3>
+          {prefs.hiddenLeagues && prefs.hiddenLeagues.length > 0 && (
+            <button
+              onClick={handleUnhideAllLeagues}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--color-primary)',
+                fontSize: '0.72rem',
+                fontWeight: '700',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
+            >
+              Reexibir Todas
+            </button>
+          )}
+        </div>
+        <p style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+          Ligas que você optou por não acompanhar na tela do Ao Vivo. Elas ficam ocultadas do seu feed até que você decida reexibi-las.
+        </p>
+
+        {(!prefs.hiddenLeagues || prefs.hiddenLeagues.length === 0) ? (
+          <div style={{
+            padding: '12px 14px',
+            borderRadius: '8px',
+            backgroundColor: 'rgba(255,255,255,0.01)',
+            border: '1px solid var(--border-color)',
+            fontSize: '0.75rem',
+            color: 'var(--color-text-muted)'
+          }}>
+            Nenhuma liga ocultada. Todas as partidas disponíveis são exibidas normalmente.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+            {prefs.hiddenLeagues.map(id => {
+              const leagueName = prefs.hiddenLeagueNames?.[id] || POPULAR_LEAGUES.find(l => l.id === id)?.name || `Liga #${id}`;
+              return (
+                <div 
+                  key={id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid var(--border-color)',
+                    fontSize: '0.78rem'
+                  }}
+                >
+                  <span style={{ fontWeight: '600', color: '#fff' }}>{leagueName}</span>
+                  <button
+                    onClick={() => handleUnhideLeague(id)}
+                    style={{
+                      background: 'rgba(157, 124, 252, 0.1)',
+                      border: '1px solid var(--color-primary)',
+                      color: '#fff',
+                      borderRadius: '6px',
+                      padding: '4px 10px',
+                      fontSize: '0.7rem',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <RotateCcw size={11} />
+                    <span>Reexibir / Seguir</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)' }} />

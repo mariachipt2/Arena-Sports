@@ -30,6 +30,8 @@ try {
 const DEFAULT_PREFS: Preferences = {
   apiKey: envKey || '',
   selectedLeagues: [71, 73, 2, 39, 140], // Brasileirão Série A, Copa do Brasil, Champions, Premier League, La Liga
+  hiddenLeagues: [], // Ligas que o usuário não deseja seguir / ocultou
+  hiddenLeagueNames: {}, // Mapeamento id -> nome
   useSimulation: false, // Modo Oficial em Tempo Real (API Oficial)
 };
 
@@ -236,5 +238,96 @@ export const storageService = {
   isFavorite(matchId: number): boolean {
     const favs = this.getFavorites();
     return favs.includes(matchId);
+  },
+
+  // --- CONTROLE DE LIGAS (SEGUIR / NÃO SEGUIR) ---
+  isLeagueFollowed(leagueId: number): boolean {
+    const prefs = this.getPreferences();
+    return (prefs.selectedLeagues || []).includes(leagueId);
+  },
+
+  isLeagueHidden(leagueId: number): boolean {
+    const prefs = this.getPreferences();
+    return (prefs.hiddenLeagues || []).includes(leagueId);
+  },
+
+  toggleFollowLeague(leagueId: number, leagueName?: string): boolean {
+    const prefs = this.getPreferences();
+    const selected = [...(prefs.selectedLeagues || [])];
+    const hidden = [...(prefs.hiddenLeagues || [])];
+    const names = { ...(prefs.hiddenLeagueNames || {}) };
+
+    if (leagueName) {
+      names[leagueId] = leagueName;
+    }
+
+    // Se estiver oculta, desoculta ao seguir
+    const hiddenIndex = hidden.indexOf(leagueId);
+    if (hiddenIndex !== -1) {
+      hidden.splice(hiddenIndex, 1);
+    }
+
+    const index = selected.indexOf(leagueId);
+    let isFollowed = false;
+    if (index === -1) {
+      selected.push(leagueId);
+      isFollowed = true;
+    } else {
+      selected.splice(index, 1);
+      isFollowed = false;
+    }
+
+    this.savePreferences({
+      ...prefs,
+      selectedLeagues: selected,
+      hiddenLeagues: hidden,
+      hiddenLeagueNames: names
+    });
+    window.dispatchEvent(new Event('preferencesChanged'));
+    return isFollowed;
+  },
+
+  hideLeague(leagueId: number, leagueName?: string): void {
+    const prefs = this.getPreferences();
+    const hidden = [...(prefs.hiddenLeagues || [])];
+    const selected = [...(prefs.selectedLeagues || [])];
+    const names = { ...(prefs.hiddenLeagueNames || {}) };
+
+    if (leagueName) {
+      names[leagueId] = leagueName;
+    }
+
+    // Remove das seguidas caso estivesse
+    const selIndex = selected.indexOf(leagueId);
+    if (selIndex !== -1) {
+      selected.splice(selIndex, 1);
+    }
+
+    // Adiciona às ocultadas (não seguidas) se ainda não estiver
+    if (!hidden.includes(leagueId)) {
+      hidden.push(leagueId);
+    }
+
+    this.savePreferences({
+      ...prefs,
+      selectedLeagues: selected,
+      hiddenLeagues: hidden,
+      hiddenLeagueNames: names
+    });
+    window.dispatchEvent(new Event('preferencesChanged'));
+  },
+
+  unhideLeague(leagueId: number): void {
+    const prefs = this.getPreferences();
+    const hidden = [...(prefs.hiddenLeagues || [])];
+    const index = hidden.indexOf(leagueId);
+    if (index !== -1) {
+      hidden.splice(index, 1);
+      this.savePreferences({
+        ...prefs,
+        hiddenLeagues: hidden
+      });
+      window.dispatchEvent(new Event('preferencesChanged'));
+    }
   }
 };
