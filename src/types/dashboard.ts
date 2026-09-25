@@ -8,12 +8,20 @@ export interface QuotaInfo {
   resetDate: string;
 }
 
+export interface FavoriteTeam {
+  id: number;
+  name: string;
+  logo?: string;
+}
+
 export interface Preferences {
   apiKey: string;
   selectedLeagues: number[]; // ID das ligas que o usuário deseja priorizar
   hiddenLeagues: number[];   // ID das ligas que o usuário optou por não seguir / ocultar
   hiddenLeagueNames?: Record<number, string>; // Mapeia ID -> Nome da Liga para listagem nos ajustes
   useSimulation: boolean;
+  favoriteTeams?: FavoriteTeam[]; // Times favoritados pelo usuário para alerta rápido
+  priorityPollIntervalSeconds?: number; // Tempo de consulta rápida quando um time favorito estiver jogando (padrão 30s)
 }
 
 // Ligas mais populares e seus IDs na API-Football

@@ -1,4 +1,4 @@
-import type { Preferences, QuotaInfo } from '../types/dashboard';
+import type { Preferences, QuotaInfo, FavoriteTeam } from '../types/dashboard';
 
 interface CacheEntry<T> {
   data: T;
@@ -33,6 +33,8 @@ const DEFAULT_PREFS: Preferences = {
   hiddenLeagues: [], // Ligas que o usuário não deseja seguir / ocultou
   hiddenLeagueNames: {}, // Mapeamento id -> nome
   useSimulation: false, // Modo Oficial em Tempo Real (API Oficial)
+  favoriteTeams: [], // Times favoritos para modo rápido
+  priorityPollIntervalSeconds: 30, // 30 segundos ao vivo quando o time jogar
 };
 
 export const storageService = {
@@ -229,6 +231,7 @@ export const storageService = {
       }
 
       localStorage.setItem('arena_favorites', JSON.stringify(favs));
+      window.dispatchEvent(new CustomEvent('favoritesChanged', { detail: favs }));
       return isFav;
     } catch (e) {
       return false;
@@ -238,6 +241,86 @@ export const storageService = {
   isFavorite(matchId: number): boolean {
     const favs = this.getFavorites();
     return favs.includes(matchId);
+  },
+
+  // --- TIMES FAVORITADOS (MODO RÁPIDO AO VIVO) ---
+  getFavoriteTeams(): FavoriteTeam[] {
+    try {
+      const stored = localStorage.getItem('arena_favorite_teams');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+      const prefs = this.getPreferences();
+      return prefs.favoriteTeams || [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveFavoriteTeams(teams: FavoriteTeam[]): void {
+    try {
+      localStorage.setItem('arena_favorite_teams', JSON.stringify(teams));
+      const prefs = this.getPreferences();
+      this.savePreferences({ ...prefs, favoriteTeams: teams });
+      window.dispatchEvent(new CustomEvent('favoriteTeamsChanged', { detail: teams }));
+    } catch (e) {
+      console.error('Erro ao salvar times favoritos:', e);
+    }
+  },
+
+  toggleFavoriteTeam(team: FavoriteTeam | { id: number; name: string; logo?: string }): boolean {
+    try {
+      const teams = this.getFavoriteTeams();
+      const index = teams.findIndex(t => t.id === team.id);
+      let isFav = false;
+
+      if (index === -1) {
+        teams.push({
+          id: team.id,
+          name: team.name,
+          logo: team.logo
+        });
+        isFav = true;
+      } else {
+        teams.splice(index, 1);
+        isFav = false;
+      }
+
+      this.saveFavoriteTeams(teams);
+      return isFav;
+    } catch (e) {
+      return false;
+    }
+  },
+
+  isTeamFavorite(teamId: number): boolean {
+    const teams = this.getFavoriteTeams();
+    return teams.some(t => t.id === teamId);
+  },
+
+  getPriorityPollInterval(): number {
+    try {
+      const stored = localStorage.getItem('arena_priority_interval');
+      if (stored) {
+        const val = parseInt(stored, 10);
+        if (!isNaN(val) && val > 0) return val;
+      }
+      const prefs = this.getPreferences();
+      return prefs.priorityPollIntervalSeconds || 30;
+    } catch {
+      return 30;
+    }
+  },
+
+  setPriorityPollInterval(seconds: number): void {
+    try {
+      localStorage.setItem('arena_priority_interval', seconds.toString());
+      const prefs = this.getPreferences();
+      this.savePreferences({ ...prefs, priorityPollIntervalSeconds: seconds });
+      window.dispatchEvent(new CustomEvent('priorityIntervalChanged', { detail: seconds }));
+    } catch (e) {
+      console.error('Erro ao salvar intervalo prioritário:', e);
+    }
   },
 
   // --- CONTROLE DE LIGAS (SEGUIR / NÃO SEGUIR) ---

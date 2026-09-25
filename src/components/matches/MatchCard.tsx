@@ -12,7 +12,7 @@ interface MatchCardProps {
 }
 
 export const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite, isTeamFavorite } = useFavorites();
   const { fixture, league, teams, goals } = match;
 
   const isLive = ['1H', '2H', 'HT', 'ET', 'P', 'LIVE'].includes(fixture.status.short);
@@ -21,6 +21,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
   // Detecção dos vencedores para aplicar destaque
   const homeWinner = teams.home.winner === true || (isFinished && (goals.home || 0) > (goals.away || 0));
   const awayWinner = teams.away.winner === true || (isFinished && (goals.away || 0) > (goals.home || 0));
+
+  const isHomeFav = isTeamFavorite(teams.home.id);
+  const isAwayFav = isTeamFavorite(teams.away.id);
+  const isAnyTeamFav = isHomeFav || isAwayFav;
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -76,8 +80,11 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
 
   return (
     <div 
-      className="glass-panel glass-panel-hover match-card"
+      className={`glass-panel glass-panel-hover match-card ${isAnyTeamFav ? 'favorite-team-match' : ''}`}
       onClick={onClick}
+      style={{
+        borderLeft: isAnyTeamFav ? '3px solid #ffd700' : undefined
+      }}
     >
       {/* Header do Card */}
       <div className="match-card-header">
@@ -118,7 +125,6 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
             />
           </button>
         </div>
-
       </div>
 
       {/* Body do Card (Times e Placar) */}
@@ -129,6 +135,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
             <TeamBadge name={teams.home.name} logoUrl={teams.home.logo} size={28} />
             <span className={`team-name ${homeWinner ? 'winner' : ''}`}>
               {teams.home.name}
+              {isHomeFav && (
+                <span 
+                  title="Time Favorito (Modo Rápido 30s ativo quando estiver jogando)" 
+                  style={{ marginLeft: '5px', color: '#ffd700', fontSize: '0.75rem' }}
+                >
+                  ⭐
+                </span>
+              )}
             </span>
           </div>
           {(isLive || isFinished) && (
@@ -146,6 +160,14 @@ export const MatchCard: React.FC<MatchCardProps> = ({ match, onClick }) => {
             <TeamBadge name={teams.away.name} logoUrl={teams.away.logo} size={28} />
             <span className={`team-name ${awayWinner ? 'winner' : ''}`}>
               {teams.away.name}
+              {isAwayFav && (
+                <span 
+                  title="Time Favorito (Modo Rápido 30s ativo quando estiver jogando)" 
+                  style={{ marginLeft: '5px', color: '#ffd700', fontSize: '0.75rem' }}
+                >
+                  ⭐
+                </span>
+              )}
             </span>
           </div>
           {(isLive || isFinished) && (

@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, Sparkles, Database, Info, Palette, RotateCcw, Bell, Smartphone, Trash2, EyeOff } from 'lucide-react';
+import { Save, Check, Sparkles, Database, Info, Palette, RotateCcw, Bell, Smartphone, Trash2, EyeOff, Zap, Star } from 'lucide-react';
 import { storageService } from '../../services/storage';
 import { notificationService, type ScheduledReminder } from '../../services/notificationService';
 import { useQuotaMonitor } from '../../hooks/useQuotaMonitor';
 import { useTeamTheme } from '../../hooks/useTeamTheme';
+import { useFavorites } from '../../hooks/useFavorites';
 import type { Preferences } from '../../types/dashboard';
 import { POPULAR_LEAGUES } from '../../types/dashboard';
+import { POPULAR_TEAM_THEMES } from '../../services/themeService';
 
 export const SettingsPanel: React.FC = () => {
   const { quota } = useQuotaMonitor();
   const { currentTheme, isCustomThemeActive, selectTheme, resetTheme, popularThemes } = useTeamTheme();
+  const { favoriteTeams, toggleFavoriteTeam } = useFavorites();
+  const [priorityInterval, setPriorityInterval] = useState<number>(() => storageService.getPriorityPollInterval());
   const [prefs, setPrefs] = useState<Preferences>(() => storageService.getPreferences());
   const [saved, setSaved] = useState(false);
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | 'unsupported'>(() =>
@@ -281,6 +285,174 @@ export const SettingsPanel: React.FC = () => {
             })}
           </div>
         )}
+      </div>
+
+      <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)' }} />
+
+      {/* Seção - Times Favoritos & Modo Rápido no Ao Vivo */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Zap size={16} style={{ color: '#ffd700' }} />
+              <span>Times Favoritos (Modo Rápido no Ao Vivo)</span>
+            </h3>
+            <p style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+              Quando seu time estiver jogando ao vivo, as consultas da API serão aceleradas para você não perder nenhum gol!
+            </p>
+          </div>
+          <span style={{ fontSize: '0.72rem', color: '#ffd700', fontWeight: '700' }}>
+            {favoriteTeams.length} time(s)
+          </span>
+        </div>
+
+        {/* Seletor de Intervalo de Polling do Modo Rápido */}
+        <div style={{
+          backgroundColor: 'rgba(255, 215, 0, 0.04)',
+          border: '1px solid rgba(255, 215, 0, 0.18)',
+          borderRadius: '10px',
+          padding: '12px 14px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#fff' }}>
+              ⏱️ Tempo de Atualização quando o time estiver jogando:
+            </span>
+            <span style={{ fontSize: '0.72rem', color: '#ffd700', fontWeight: '800' }}>
+              A cada {priorityInterval} segundos
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+            {[
+              { sec: 15, label: '15s', desc: 'Ultra Rápido' },
+              { sec: 30, label: '30s', desc: 'Recomendado' },
+              { sec: 45, label: '45s', desc: 'Equilibrado' },
+              { sec: 60, label: '60s', desc: 'Econômico' },
+            ].map(opt => {
+              const isActive = priorityInterval === opt.sec;
+              return (
+                <button
+                  key={opt.sec}
+                  onClick={() => {
+                    storageService.setPriorityPollInterval(opt.sec);
+                    setPriorityInterval(opt.sec);
+                  }}
+                  style={{
+                    padding: '6px 4px',
+                    borderRadius: '8px',
+                    border: isActive ? '1px solid #ffd700' : '1px solid var(--border-color)',
+                    background: isActive ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255,255,255,0.02)',
+                    color: isActive ? '#fff' : 'var(--color-text-muted)',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ fontSize: '0.8rem', fontWeight: '800', color: isActive ? '#ffd700' : '#fff' }}>{opt.label}</div>
+                  <div style={{ fontSize: '0.62rem', opacity: 0.8 }}>{opt.desc}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ fontSize: '0.68rem', color: 'var(--color-text-muted)', lineHeight: '1.3' }}>
+            ℹ️ Jogos normais continuam atualizando a cada 2 minutos (120s) para economizar cota.
+          </div>
+        </div>
+
+        {/* Lista de Times Favoritos Cadastrados */}
+        {favoriteTeams.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--color-text-muted)' }}>
+              Seus times com monitoramento prioritário:
+            </span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              {favoriteTeams.map(team => (
+                <div
+                  key={team.id}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '4px 10px',
+                    borderRadius: '999px',
+                    background: 'rgba(255, 215, 0, 0.1)',
+                    border: '1px solid rgba(255, 215, 0, 0.3)',
+                    fontSize: '0.75rem',
+                    fontWeight: '700',
+                    color: '#fff'
+                  }}
+                >
+                  {team.logo && <img src={team.logo} alt="" width={16} height={16} style={{ objectFit: 'contain' }} />}
+                  <span>{team.name}</span>
+                  <button
+                    onClick={() => toggleFavoriteTeam(team)}
+                    title={`Remover ${team.name} dos favoritos`}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                      padding: '0 2px',
+                      fontSize: '0.85rem',
+                      lineHeight: 1
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Adicionar Rapidamente Clubes Populares */}
+        <div>
+          <span style={{ fontSize: '0.72rem', fontWeight: '700', color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px' }}>
+            Toque para favoritar / desfavoritar rapidamente:
+          </span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '6px', maxHeight: '160px', overflowY: 'auto', paddingRight: '4px' }}>
+            {POPULAR_TEAM_THEMES.filter(t => t.id && t.name !== 'Arena Padrão').map(team => {
+              const isFav = favoriteTeams.some(f => f.id === team.id);
+              return (
+                <button
+                  key={team.id}
+                  onClick={() => toggleFavoriteTeam({ id: team.id!, name: team.name })}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '8px',
+                    border: isFav ? '1px solid #ffd700' : '1px solid var(--border-color)',
+                    background: isFav ? 'rgba(255, 215, 0, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
+                    <span
+                      style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: team.primaryColor,
+                        flexShrink: 0
+                      }}
+                    />
+                    <span style={{ fontSize: '0.72rem', fontWeight: isFav ? '800' : '600', color: isFav ? '#ffd700' : 'var(--color-text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {team.name}
+                    </span>
+                  </div>
+                  <Star size={12} fill={isFav ? '#ffd700' : 'none'} color={isFav ? '#ffd700' : 'var(--color-text-dark)'} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.05)' }} />

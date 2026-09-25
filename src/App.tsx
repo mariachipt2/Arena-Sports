@@ -43,7 +43,7 @@ function App() {
     scoreAway: number;
   } | null>(null);
 
-  const { favorites } = useFavorites();
+  const { favorites, isTeamFavorite } = useFavorites();
 
   // Callback acionado pelo hook useLiveMatches quando um time marca gol em um jogo favoritado
   const handleGoalScored = useCallback((event: any) => {
@@ -76,7 +76,10 @@ function App() {
     dailyMatches,
     loading,
     error,
-    refetch
+    refetch,
+    isPriorityPolling,
+    priorityTeamPlaying,
+    pollIntervalSeconds
   } = useLiveMatches(handleGoalScored);
 
   const [isUpdating, setIsUpdating] = useState(false);
@@ -108,13 +111,17 @@ function App() {
     }
     
     if (activeTab === 'favorites') {
-      // Junta todos os jogos e filtra apenas os favoritados
+      // Junta todos os jogos e filtra partidas favoritadas OU com times favoritados
       const allMatches = [...liveMatches, ...dailyMatches];
       // Remove duplicatas por ID do fixture
       const uniqueMatches = allMatches.filter(
         (match, index, self) => self.findIndex((m) => m.fixture.id === match.fixture.id) === index
       );
-      return uniqueMatches.filter((m) => favorites.includes(m.fixture.id));
+      return uniqueMatches.filter((m) => 
+        favorites.includes(m.fixture.id) ||
+        isTeamFavorite(m.teams.home.id) ||
+        isTeamFavorite(m.teams.away.id)
+      );
     }
 
     return [];
@@ -203,6 +210,40 @@ function App() {
         
         {activeTab !== 'settings' ? (
           <>
+            {/* Banner de Modo Prioritário / Consulta Rápida quando time favorito estiver jogando */}
+            {activeTab === 'live' && isPriorityPolling && (
+              <div 
+                className="glass-panel"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '10px 16px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.12), rgba(157, 124, 252, 0.15))',
+                  border: '1px solid rgba(255, 215, 0, 0.4)',
+                  boxShadow: '0 0 20px rgba(255, 215, 0, 0.15)',
+                  marginBottom: '14px',
+                  animation: 'pulseGlow 2.5s infinite ease-in-out'
+                }}
+              >
+                <span 
+                  style={{
+                    width: '10px',
+                    height: '10px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffd700',
+                    boxShadow: '0 0 10px #ffd700',
+                    flexShrink: 0
+                  }}
+                  className="animate-pulse-live"
+                />
+                <div style={{ fontSize: '0.78rem', color: '#fff', lineHeight: '1.4' }}>
+                  <strong style={{ color: '#ffd700' }}>⚡ Modo Rápido Ativo ({pollIntervalSeconds}s):</strong> Seu time favorito ({priorityTeamPlaying}) está jogando ao vivo! Placares atualizados com prioridade máxima.
+                </div>
+              </div>
+            )}
+
             {/* Barra de Filtros Rápidos (Pílulas Horizontais) */}
             <div className="filter-scroll-container">
               <button 
@@ -285,7 +326,7 @@ function App() {
                     : activeTab === 'live' 
                     ? "Não há jogos ao vivo ocorrendo no momento para este filtro."
                     : activeTab === 'favorites'
-                    ? "Você não possui nenhuma partida favoritada. Clique na estrela dos cards para monitorá-las!"
+                    ? "Você não possui partidas ou times favoritados. Favorite um time ou partida para monitorar com consultas aceleradas no Ao Vivo!"
                     : "Nenhum jogo agendado ou resultado disponível para este filtro."
                 }
               />

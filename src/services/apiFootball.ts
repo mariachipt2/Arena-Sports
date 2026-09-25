@@ -62,22 +62,24 @@ export const apiFootballService = {
     }
   },
 
-  async fetchFromApi<T>(endpoint: string, cacheKey: string, cacheDurationMinutes: number): Promise<T> {
+  async fetchFromApi<T>(endpoint: string, cacheKey: string, cacheDurationMinutes: number, bypassCache = false): Promise<T> {
     const prefs = storageService.getPreferences();
 
     if (!prefs.apiKey) {
       throw new Error('NoApiKey');
     }
 
-    // 1. Tenta recuperar do cache local
-    const cached = storageService.getCache<T>(cacheKey);
-    if (cached) {
-      console.log(`[Cache Hit] Chave: ${cacheKey}`);
-      return cached;
+    // 1. Tenta recuperar do cache local (se não estiver em modo de atualização forçada)
+    if (!bypassCache) {
+      const cached = storageService.getCache<T>(cacheKey);
+      if (cached) {
+        console.log(`[Cache Hit] Chave: ${cacheKey}`);
+        return cached;
+      }
     }
 
     // 2. Faz a chamada HTTP real
-    console.log(`[API Request] Chamando endpoint: ${endpoint}`);
+    console.log(`[API Request] Chamando endpoint: ${endpoint} ${bypassCache ? '(Bypass Cache / Modo Prioritário)' : ''}`);
     const response = await fetch(`${API_URL}/${endpoint}`, {
       method: 'GET',
       headers: {
@@ -115,9 +117,11 @@ export const apiFootballService = {
   },
 
   // --- OBTENÇÃO DE PARTIDAS AO VIVO ---
-  async getLiveMatches(): Promise<ApiFixture[]> {
+  async getLiveMatches(bypassCache = false): Promise<ApiFixture[]> {
     try {
-      const apiMatches = await this.fetchFromApi<ApiFixture[]>('fixtures?live=all', 'live_matches', 1);
+      // Quando em modo prioritário (time favorito jogando), cache curto (~15s) para garantir dados frescos
+      const cacheDurationMinutes = bypassCache ? 0.25 : 1;
+      const apiMatches = await this.fetchFromApi<ApiFixture[]>('fixtures?live=all', 'live_matches', cacheDurationMinutes, bypassCache);
       if (apiMatches && apiMatches.length > 0) {
         return apiMatches;
       }

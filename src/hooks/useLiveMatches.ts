@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { ApiFixture } from '../types/api';
 import { apiFootballService } from '../services/apiFootball';
 import { storageService } from '../services/storage';
+import { themeService } from '../services/themeService';
 
 interface GoalEvent {
   match: ApiFixture;
@@ -18,21 +19,67 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   
+  const [priorityInfo, setPriorityInfo] = useState<{
+    isPriority: boolean;
+    teamName: string | null;
+  }>({ isPriority: false, teamName: null });
+
   const previousLiveMatchesRef = useRef<ApiFixture[]>([]);
   const isTabVisibleRef = useRef(true);
 
+  // Avalia se há partida prioritária ocorrendo (time favorito, partida favoritada ou tema do clube ativo)
+  const evaluatePriority = useCallback((currentMatches: ApiFixture[]) => {
+    const favMatches = storageService.getFavorites();
+    const favTeams = storageService.getFavoriteTeams();
+    const favTeamIds = new Set(favTeams.map(t => t.id));
+    const activeTheme = themeService.getActiveTheme();
+    const activeThemeId = activeTheme?.id;
+
+    for (const match of currentMatches) {
+      const homeId = match.teams.home.id;
+      const awayId = match.teams.away.id;
+
+      if (favTeamIds.has(homeId)) {
+        return { isPriority: true, teamName: match.teams.home.name };
+      }
+      if (favTeamIds.has(awayId)) {
+        return { isPriority: true, teamName: match.teams.away.name };
+      }
+      if (activeThemeId && (homeId === activeThemeId || awayId === activeThemeId)) {
+        const teamName = homeId === activeThemeId ? match.teams.home.name : match.teams.away.name;
+        return { isPriority: true, teamName };
+      }
+      if (favMatches.includes(match.fixture.id)) {
+        return { isPriority: true, teamName: `${match.teams.home.name} x ${match.teams.away.name}` };
+      }
+    }
+
+    return { isPriority: false, teamName: null };
+  }, []);
+
   // Carrega apenas partidas ao vivo no polling periódico
-  const pollLiveMatches = useCallback(async () => {
+  const pollLiveMatches = useCallback(async (isPriority = false) => {
     try {
-      const liveData = await apiFootballService.getLiveMatches();
+      const liveData = await apiFootballService.getLiveMatches(isPriority);
       setLiveMatches(liveData);
       setLastUpdated(new Date());
 
+      // Reavalia status de prioridade
+      const prio = evaluatePriority(liveData);
+      setPriorityInfo(prio);
+
       // Detecção de gols
       const favorites = storageService.getFavorites();
+      const favTeams = storageService.getFavoriteTeams();
+      const favTeamIds = new Set(favTeams.map(t => t.id));
+
       if (previousLiveMatchesRef.current.length > 0 && onGoalScored) {
         liveData.forEach((currentMatch) => {
-          if (favorites.includes(currentMatch.fixture.id)) {
+          const isMatchFav = favorites.includes(currentMatch.fixture.id);
+          const isHomeFav = favTeamIds.has(currentMatch.teams.home.id);
+          const isAwayFav = favTeamIds.has(currentMatch.teams.away.id);
+
+          if (isMatchFav || isHomeFav || isAwayFav) {
             const prevMatch = previousLiveMatchesRef.current.find(
               (m) => m.fixture.id === currentMatch.fixture.id
             );
@@ -67,7 +114,7 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
     } catch (err) {
       console.warn('Erro no polling ao vivo:', err);
     }
-  }, [onGoalScored]);
+  }, [onGoalScored, evaluatePriority]);
 
   // Carrega todos os dados (diários + ao vivo)
   const fetchAllMatches = useCallback(async () => {
@@ -83,6 +130,10 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
       setError(null);
       previousLiveMatchesRef.current = liveData;
 
+      // Avalia prioridade inicial
+      const prio = evaluatePriority(liveData);
+      setPriorityInfo(prio);
+
       // Sincroniza status oficial da cota com a API
       apiFootballService.syncQuotaStatus();
     } catch (err) {
@@ -91,7 +142,7 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [evaluatePriority]);
 
   // Efeito de inicialização e eventos de visibilidade / preferências
   useEffect(() => {
@@ -102,7 +153,7 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
       if (isTabVisibleRef.current) {
         if (previousLiveMatchesRef.current.length > 0) {
           console.log('[Visibility API] Aba ativa com jogos ao vivo. Atualizando placares...');
-          pollLiveMatches();
+          pollLiveMatches(priorityInfo.isPriority);
         } else {
           console.log('[Visibility API] Aba ativa, mas sem jogos ao vivo. Polling mantido em pausa para economizar cota.');
         }
@@ -124,7 +175,35 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('preferencesChanged', handlePrefsChange);
     };
-  }, [fetchAllMatches, pollLiveMatches]);
+  }, [fetchAllMatches, pollLiveMatches, priorityInfo.isPriority]);
+
+  // Reavaliação imediata de prioridade quando o usuário favorita um time ou partida
+  useEffect(() => {
+    const handleFavoritesUpdate = () => {
+      const prio = evaluatePriority(liveMatches);
+      setPriorityInfo(prio);
+    };
+
+    window.addEventListener('favoritesChanged', handleFavoritesUpdate);
+    window.addEventListener('favoriteTeamsChanged', handleFavoritesUpdate);
+    window.addEventListener('teamThemeChanged', handleFavoritesUpdate);
+    window.addEventListener('priorityIntervalChanged', handleFavoritesUpdate);
+
+    return () => {
+      window.removeEventListener('favoritesChanged', handleFavoritesUpdate);
+      window.removeEventListener('favoriteTeamsChanged', handleFavoritesUpdate);
+      window.removeEventListener('teamThemeChanged', handleFavoritesUpdate);
+      window.removeEventListener('priorityIntervalChanged', handleFavoritesUpdate);
+    };
+  }, [evaluatePriority, liveMatches]);
+
+  // Intervalo dinâmico de polling:
+  // Se houver time favorito jogando: usa o tempo configurado (padrão 30s)
+  // Caso contrário: intervalo padrão seguro de 120s (2 minutos)
+  const priorityIntervalSeconds = storageService.getPriorityPollInterval();
+  const pollIntervalMs = priorityInfo.isPriority
+    ? priorityIntervalSeconds * 1000
+    : 120000;
 
   // Efeito de Polling inteligente e econômico da API Real
   useEffect(() => {
@@ -134,15 +213,18 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
       return;
     }
 
-    // Se houver partidas ao vivo, consulta em intervalo seguro (2 minutos)
+    console.log(
+      `[Polling Inteligente] Intervalo ativo: ${pollIntervalMs / 1000}s | Modo Prioritário: ${priorityInfo.isPriority ? `Sim (Time: ${priorityInfo.teamName})` : 'Padrão (120s)'}`
+    );
+
     const intervalId = setInterval(() => {
       if (isTabVisibleRef.current) {
-        pollLiveMatches();
+        pollLiveMatches(priorityInfo.isPriority);
       }
-    }, 120000); // 2 minutos
+    }, pollIntervalMs);
 
     return () => clearInterval(intervalId);
-  }, [pollLiveMatches, liveMatches.length]);
+  }, [pollLiveMatches, liveMatches.length, pollIntervalMs, priorityInfo.isPriority, priorityInfo.teamName]);
 
   return {
     liveMatches,
@@ -150,6 +232,9 @@ export const useLiveMatches = (onGoalScored?: (event: GoalEvent) => void) => {
     loading,
     error,
     lastUpdated,
-    refetch: fetchAllMatches
+    refetch: fetchAllMatches,
+    isPriorityPolling: priorityInfo.isPriority,
+    priorityTeamPlaying: priorityInfo.teamName,
+    pollIntervalSeconds: priorityInfo.isPriority ? priorityIntervalSeconds : 120
   };
 };

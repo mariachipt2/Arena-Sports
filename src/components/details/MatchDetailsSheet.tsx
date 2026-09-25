@@ -21,7 +21,7 @@ interface MatchDetailsSheetProps {
 type DetailTab = 'timeline' | 'lineups' | 'stats' | 'standings';
 
 export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onClose }) => {
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { isFavorite, toggleFavorite, isTeamFavorite, toggleFavoriteTeam } = useFavorites();
   const { toggleThemeByTeam, isThemeActiveForTeam } = useTeamTheme();
   const [activeTab, setActiveTab] = useState<DetailTab>('timeline');
   const [lineups, setLineups] = useState<MatchLineup[]>([]);
@@ -77,6 +77,8 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
 
   const isHomeActive = isThemeActiveForTeam({ id: teams.home.id, name: teams.home.name });
   const isAwayActive = isThemeActiveForTeam({ id: teams.away.id, name: teams.away.name });
+  const isHomeTeamFav = isTeamFavorite(teams.home.id);
+  const isAwayTeamFav = isTeamFavorite(teams.away.id);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -209,7 +211,7 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
           </div>
         </div>
 
-        {/* Feedback visual de tema ativado */}
+        {/* Feedback visual de tema ativado / favorito */}
         {themeFeedback && (
           <div 
             style={{ 
@@ -247,39 +249,72 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
             <span style={{ fontSize: '0.9rem', fontWeight: '700', color: homeWinner ? '#fff' : 'var(--color-text-main)' }}>
               {teams.home.name}
             </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const res = toggleThemeByTeam({ id: teams.home.id, name: teams.home.name, logo: teams.home.logo });
-                if (res.active) {
-                  setThemeFeedback(`Tema ${res.themeName} ativado!`);
-                } else {
-                  setThemeFeedback('Tema padrão Arena restaurado!');
-                }
-                setTimeout(() => setThemeFeedback(null), 2500);
-              }}
-              style={{
-                background: isHomeActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)',
-                border: isHomeActive ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                borderRadius: '6px',
-                padding: '3px 8px',
-                fontSize: '0.68rem',
-                fontWeight: '700',
-                color: isHomeActive ? '#fff' : 'var(--color-text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                marginTop: '2px',
-                transition: 'all 0.15s',
-                boxShadow: isHomeActive ? '0 0 10px var(--border-color-glow)' : 'none'
-              }}
-              title={isHomeActive ? "Tema ativo! Toque para restaurar o tema padrão" : `Mudar visual do app para as cores do ${teams.home.name}`}
-              className={`team-theme-btn ${isHomeActive ? 'active' : ''}`}
-            >
-              <Palette size={11} />
-              <span>{isHomeActive ? 'Tema Ativo' : 'Tema'}</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const res = toggleThemeByTeam({ id: teams.home.id, name: teams.home.name, logo: teams.home.logo });
+                  if (res.active) {
+                    setThemeFeedback(`Tema ${res.themeName} ativado!`);
+                  } else {
+                    setThemeFeedback('Tema padrão Arena restaurado!');
+                  }
+                  setTimeout(() => setThemeFeedback(null), 2500);
+                }}
+                style={{
+                  background: isHomeActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)',
+                  border: isHomeActive ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: '0.68rem',
+                  fontWeight: '700',
+                  color: isHomeActive ? '#fff' : 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s',
+                  boxShadow: isHomeActive ? '0 0 10px var(--border-color-glow)' : 'none'
+                }}
+                title={isHomeActive ? "Tema ativo! Toque para restaurar o tema padrão" : `Mudar visual do app para as cores do ${teams.home.name}`}
+                className={`team-theme-btn ${isHomeActive ? 'active' : ''}`}
+              >
+                <Palette size={11} />
+                <span>{isHomeActive ? 'Tema Ativo' : 'Tema'}</span>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const isFav = toggleFavoriteTeam({ id: teams.home.id, name: teams.home.name, logo: teams.home.logo });
+                  if (isFav) {
+                    setThemeFeedback(`⭐ ${teams.home.name} favoritado! Modo Rápido (30s) ativado em jogos ao vivo.`);
+                  } else {
+                    setThemeFeedback(`${teams.home.name} removido dos favoritos.`);
+                  }
+                  setTimeout(() => setThemeFeedback(null), 3000);
+                }}
+                style={{
+                  background: isHomeTeamFav ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                  border: isHomeTeamFav ? '1px solid #ffd700' : '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: '0.68rem',
+                  fontWeight: '700',
+                  color: isHomeTeamFav ? '#ffd700' : 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s',
+                  boxShadow: isHomeTeamFav ? '0 0 10px rgba(255, 215, 0, 0.3)' : 'none'
+                }}
+                title={isHomeTeamFav ? "Time Favorito! Toque para desfavoritar" : `Favoritar ${teams.home.name} para consulta rápida de 30s nos jogos ao vivo`}
+              >
+                <Star size={11} fill={isHomeTeamFav ? '#ffd700' : 'none'} color={isHomeTeamFav ? '#ffd700' : 'currentColor'} />
+                <span>{isHomeTeamFav ? 'Favorito' : 'Favoritar'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Placar / Tempo */}
@@ -337,39 +372,72 @@ export const MatchDetailsSheet: React.FC<MatchDetailsSheetProps> = ({ match, onC
             <span style={{ fontSize: '0.9rem', fontWeight: '700', color: awayWinner ? '#fff' : 'var(--color-text-main)' }}>
               {teams.away.name}
             </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                const res = toggleThemeByTeam({ id: teams.away.id, name: teams.away.name, logo: teams.away.logo });
-                if (res.active) {
-                  setThemeFeedback(`Tema ${res.themeName} ativado!`);
-                } else {
-                  setThemeFeedback('Tema padrão Arena restaurado!');
-                }
-                setTimeout(() => setThemeFeedback(null), 2500);
-              }}
-              style={{
-                background: isAwayActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)',
-                border: isAwayActive ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
-                borderRadius: '6px',
-                padding: '3px 8px',
-                fontSize: '0.68rem',
-                fontWeight: '700',
-                color: isAwayActive ? '#fff' : 'var(--color-text-muted)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                marginTop: '2px',
-                transition: 'all 0.15s',
-                boxShadow: isAwayActive ? '0 0 10px var(--border-color-glow)' : 'none'
-              }}
-              title={isAwayActive ? "Tema ativo! Toque para restaurar o tema padrão" : `Mudar visual do app para as cores do ${teams.away.name}`}
-              className={`team-theme-btn ${isAwayActive ? 'active' : ''}`}
-            >
-              <Palette size={11} />
-              <span>{isAwayActive ? 'Tema Ativo' : 'Tema'}</span>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const res = toggleThemeByTeam({ id: teams.away.id, name: teams.away.name, logo: teams.away.logo });
+                  if (res.active) {
+                    setThemeFeedback(`Tema ${res.themeName} ativado!`);
+                  } else {
+                    setThemeFeedback('Tema padrão Arena restaurado!');
+                  }
+                  setTimeout(() => setThemeFeedback(null), 2500);
+                }}
+                style={{
+                  background: isAwayActive ? 'var(--color-primary)' : 'rgba(255,255,255,0.05)',
+                  border: isAwayActive ? '1px solid var(--color-primary)' : '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: '0.68rem',
+                  fontWeight: '700',
+                  color: isAwayActive ? '#fff' : 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s',
+                  boxShadow: isAwayActive ? '0 0 10px var(--border-color-glow)' : 'none'
+                }}
+                title={isAwayActive ? "Tema ativo! Toque para restaurar o tema padrão" : `Mudar visual do app para as cores do ${teams.away.name}`}
+                className={`team-theme-btn ${isAwayActive ? 'active' : ''}`}
+              >
+                <Palette size={11} />
+                <span>{isAwayActive ? 'Tema Ativo' : 'Tema'}</span>
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const isFav = toggleFavoriteTeam({ id: teams.away.id, name: teams.away.name, logo: teams.away.logo });
+                  if (isFav) {
+                    setThemeFeedback(`⭐ ${teams.away.name} favoritado! Modo Rápido (30s) ativado em jogos ao vivo.`);
+                  } else {
+                    setThemeFeedback(`${teams.away.name} removido dos favoritos.`);
+                  }
+                  setTimeout(() => setThemeFeedback(null), 3000);
+                }}
+                style={{
+                  background: isAwayTeamFav ? 'rgba(255, 215, 0, 0.15)' : 'rgba(255,255,255,0.05)',
+                  border: isAwayTeamFav ? '1px solid #ffd700' : '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  padding: '3px 8px',
+                  fontSize: '0.68rem',
+                  fontWeight: '700',
+                  color: isAwayTeamFav ? '#ffd700' : 'var(--color-text-muted)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s',
+                  boxShadow: isAwayTeamFav ? '0 0 10px rgba(255, 215, 0, 0.3)' : 'none'
+                }}
+                title={isAwayTeamFav ? "Time Favorito! Toque para desfavoritar" : `Favoritar ${teams.away.name} para consulta rápida de 30s nos jogos ao vivo`}
+              >
+                <Star size={11} fill={isAwayTeamFav ? '#ffd700' : 'none'} color={isAwayTeamFav ? '#ffd700' : 'currentColor'} />
+                <span>{isAwayTeamFav ? 'Favorito' : 'Favoritar'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
